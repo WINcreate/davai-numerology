@@ -380,7 +380,7 @@ let gender = null;
 const DEV = /localhost|127\.0\.0\.1/.test(location.hostname) || location.protocol === 'file:' || new URLSearchParams(location.search).has('debug');
 function trackEvent(eventName, eventData) {
   const data = Object.assign({ timestamp: new Date().toISOString(), page_url: location.href }, eventData || {});
-  if (DEV) console.log('[track]', eventName, data);
+  if (DEV) { data.debug_mode = true; console.log('[track]', eventName, data); }
   try { if (typeof window.gtag === 'function') window.gtag('event', eventName, data); } catch(e) {}
 }
 let _blurTracked = false, _qAnswered = false;
