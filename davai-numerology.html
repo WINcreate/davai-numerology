@@ -85,10 +85,18 @@
   .skip-link { font-size: 13px; color: var(--text-tertiary); cursor: pointer; text-decoration: none; }
   .skip-link:hover { color: var(--green); }
 
-  /* ── ЗАМЪГЛЕН БЛОК ── */
-  .blur-block { position: relative; margin-bottom: 8px; }
-  .blur-titles { filter: blur(5px); user-select: none; pointer-events: none; opacity: 0.85; }
-  .blur-title { display: flex; align-items: center; gap: 10px; font-family: 'Playfair Display', serif; font-size: 1.25rem; color: var(--text); padding: 14px 0; border-bottom: 1px solid var(--border); }
+  /* ── ЗАМЪГЛЕН БЛОК (реален текст под всяко заглавие) ── */
+  .teaser { margin-bottom: 8px; }
+  .teaser-block { margin-bottom: 22px; }
+  .teaser-title { display: flex; align-items: center; gap: 8px; font-family: 'Playfair Display', serif; font-size: 1.2rem; color: var(--text); margin-bottom: 8px; }
+  .teaser-text {
+    font-size: 14px; line-height: 1.75; color: var(--text-secondary);
+    filter: blur(6px); user-select: none; pointer-events: none;
+    max-height: 5.4em; overflow: hidden;
+    -webkit-mask-image: linear-gradient(to bottom, #000 60%, transparent 100%);
+    mask-image: linear-gradient(to bottom, #000 60%, transparent 100%);
+  }
+  .teaser-indicator { text-align: center; font-size: 14px; color: var(--text-secondary); font-style: italic; margin: 10px 4px 20px; }
   .unlock-wrap { text-align: center; padding: 8px 0 4px; }
   .unlock-lead { font-family: 'Playfair Display', serif; font-size: 1.15rem; color: var(--text); margin-bottom: 4px; }
   .unlock-sub { font-size: 14px; color: var(--text-secondary); margin-bottom: 18px; }
@@ -119,7 +127,7 @@
 
   @media print {
     .no-print { display: none !important; }
-    #screen-form, #screen-loading, .blur-block, .question-box, .match-msg { display: none !important; }
+    #screen-form, #screen-loading, .teaser, .teaser-indicator, .question-box, .match-msg { display: none !important; }
     #screen-result { display: block !important; }
     body { background: white !important; }
     .container { padding: 0 !important; max-width: 100% !important; }
@@ -227,19 +235,37 @@
         <div style="text-align:right;"><a class="skip-link" onclick="skipQuestion()">Пропусни →</a></div>
       </div>
 
-      <div class="blur-block">
-        <div class="blur-titles">
-          <div class="blur-title">🪞 Вродена природа</div>
-          <div class="blur-title">🪞 Вибрацията ти</div>
-          <div class="blur-title">🪞 Кармичен контекст</div>
-          <div class="blur-title">🪞 Лична година</div>
-          <div class="blur-title">🪞 Твоята мисия</div>
+      <div class="unlock-wrap" style="margin-bottom:6px;">
+        <div class="unlock-lead">Твоите числа вече са изчислени.</div>
+        <div class="unlock-sub">Следва тяхната история.</div>
+      </div>
+
+      <div class="teaser" id="teaser">
+        <div class="teaser-block">
+          <div class="teaser-title">🪞 Вродена природа</div>
+          <div class="teaser-text">Числата ти описват човек, който носи вътрешна структура и ясен усет за посока. Има сила във волята ти, но и склонност да поемаш повече отговорност, отколкото е нужно. Начинът, по който взимаш решения, издава дълбок вътрешен стремеж към смисъл, а не само към резултат — и точно това определя как ще се разгърне пътят ти.</div>
+        </div>
+        <div class="teaser-block">
+          <div class="teaser-title">🪞 Вибрацията ти</div>
+          <div class="teaser-text">Това, което излъчваш навън, не винаги съвпада с онова, което носиш вътре. Хората те възприемат по определен начин заради вибрацията на името ти — и точно тук се крие едно важно разминаване, което обяснява защо понякога усещаш, че не те виждат такъв, какъвто наистина си.</div>
+        </div>
+        <div class="teaser-block">
+          <div class="teaser-title">🪞 Кармичен контекст</div>
+          <div class="teaser-text">Психичното ти число и планетарният контекст очертават задачи, които носиш от самото начало. Има уроци, които се повтарят в живота ти, докато не бъдат научени докрай. Посоката, в която ти върви най-естествено, е записана в комбинацията на числата — и когато я следваш, нещата спират да те дърпат назад.</div>
+        </div>
+        <div class="teaser-block">
+          <div class="teaser-title">🪞 Лична година</div>
+          <div class="teaser-text">Годината, в която си сега, носи свой собствен ритъм. Има неща, за които е моментът да започнеш, и други, които е по-мъдро да отложиш за следващия цикъл. Числото на личната ти година подсказва кога да действаш и кога да изчакаш — и как да не пропилееш енергията си в грешен момент.</div>
+        </div>
+        <div class="teaser-block">
+          <div class="teaser-title">🪞 Твоята мисия</div>
+          <div class="teaser-text">Всичко се събира в едно. Мисията ти не е абстрактна — тя е конкретна и се вижда ясно в комбинацията от трите традиции. Инструментът, който носиш по рождение, и капанът, който трябва да избягваш, стават очевидни щом числата се подредят в единна картина за живота ти.</div>
         </div>
       </div>
 
+      <div class="teaser-indicator">Твоят пълен Нумерологичен Одит съдържа над 900 думи персонален анализ.</div>
+
       <div class="unlock-wrap">
-        <div class="unlock-lead">Твоите числа вече са изчислени.</div>
-        <div class="unlock-sub">Следва тяхната история.</div>
         <button class="btn btn-primary" id="unlock-btn" onclick="startNumerologyCheckout()" style="width:100%;padding:16px;">
           Отключи своя одит — €12.90
         </button>
@@ -350,6 +376,31 @@ let numData = null;      // данните от формата
 let numbers = null;      // изчислените числа
 let gender = null;
 
+// ─── ANALYTICS (само GA4 / gtag) ─────────────────────────────────────────────
+const DEV = /localhost|127\.0\.0\.1/.test(location.hostname) || location.protocol === 'file:' || new URLSearchParams(location.search).has('debug');
+function trackEvent(eventName, eventData) {
+  const data = Object.assign({ timestamp: new Date().toISOString(), page_url: location.href }, eventData || {});
+  if (DEV) console.log('[track]', eventName, data);
+  try { if (typeof window.gtag === 'function') window.gtag('event', eventName, data); } catch(e) {}
+}
+let _blurTracked = false, _qAnswered = false;
+function markQuestionAnswered(skipped) {
+  if (_qAnswered) return;
+  _qAnswered = true;
+  trackEvent('question_answered', { skipped: !!skipped });
+}
+function observeBlur() {
+  const el = document.getElementById('teaser');
+  if (!el || _blurTracked) return;
+  if (!('IntersectionObserver' in window)) { _blurTracked = true; trackEvent('blur_seen', {}); return; }
+  const io = new IntersectionObserver(function(entries) {
+    entries.forEach(function(en) {
+      if (en.isIntersecting && !_blurTracked) { _blurTracked = true; trackEvent('blur_seen', {}); io.disconnect(); }
+    });
+  }, { threshold: 0.3 });
+  io.observe(el);
+}
+
 // ─── НАВИГАЦИЯ ───────────────────────────────────────────────────────────────
 function showScreen(id) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
@@ -429,6 +480,9 @@ async function submitForm() {
 
   const btn = document.getElementById('submit-btn');
   btn.disabled = true; btn.textContent = 'Изчислява се...';
+  trackEvent('form_submitted', {});
+  const t0 = Date.now();
+  showScreen('loading');   // Промяна 1: минимум 3 сек преди резултата
 
   try {
     const res = await fetch(CONFIG.workerUrl + '/numerology', {
@@ -441,9 +495,19 @@ async function submitForm() {
     numData = data;
     numbers = json.numbers;
     saveState();
-    showScreen('result');
-    renderFree(false);
+    const wait = Math.max(0, 3000 - (Date.now() - t0));
+    setTimeout(function() {
+      showScreen('result');
+      renderFree(false);
+      trackEvent('numbers_shown', {});
+      if (matchMessage(numbers)) {
+        trackEvent('match_found', { match_type: numbers.match_all ? 'all' : numbers.match_name ? 'name' : 'psychic' });
+      }
+      trackEvent('question_shown', {});
+      observeBlur();
+    }, wait);
   } catch(e) {
+    showScreen('form');
     err.textContent = 'Грешка при изчислението: ' + e.message;
     err.style.display = 'block';
     btn.disabled = false; btn.textContent = 'Изчисли безплатно →';
@@ -511,12 +575,15 @@ function matchMessage(n) {
 
 function skipQuestion() {
   document.getElementById('user-question').value = '';
+  markQuestionAnswered(true);
   document.getElementById('unlock-btn').scrollIntoView({ behavior: 'smooth' });
 }
 
 // ─── ПЛАЩАНЕ ЗА НУМЕРОЛОГИЧНИЯ ОДИТ ──────────────────────────────────────────
 async function startNumerologyCheckout() {
   const q = document.getElementById('user-question').value.trim();
+  markQuestionAnswered(!q);
+  trackEvent('buy_clicked', { value: 12.90, currency: 'EUR' });
   numData.user_question = q || null;
   saveState();
   sessionStorage.setItem(LS_CHECKOUT, '1');
@@ -566,9 +633,11 @@ async function generateReport(sessionId) {
     sessionStorage.setItem(LS_REPORT, data.report);
     sessionStorage.removeItem(LS_CHECKOUT);
 
+    trackEvent('purchase_complete', { value: 12.90, currency: 'EUR' });
     showScreen('result');
     renderFree(true);
     showReport(data.report, data.emailed);
+    trackEvent('natal_upsell_shown', {});
   } catch(e) {
     showScreen('result');
     renderFree(false);
@@ -662,6 +731,7 @@ async function payForNatal() {
   if (sel === '__free__') theme = document.getElementById('natal-theme-free').value.trim() || null;
   numData.natal_theme = theme || null;
   saveState();
+  trackEvent('natal_buy_clicked', { value: 8.90, currency: 'EUR' });
   // Програматичен checkout — за да върне на правилния домейн (natal.davai.v.bg?natal=success)
   try {
     const res = await fetch(CONFIG.workerUrl + '/create-checkout', {
@@ -795,6 +865,19 @@ function resetAll() {
 document.getElementById('natal-theme').addEventListener('change', function() {
   document.getElementById('natal-theme-free').style.display = this.value === '__free__' ? 'block' : 'none';
 });
+
+// ─── Analytics init ──
+trackEvent('page_loaded', {});
+(function() {
+  let started = false;
+  const form = document.getElementById('screen-form');
+  if (form) form.addEventListener('input', function() {
+    if (!started) { started = true; trackEvent('form_started', {}); }
+  });
+  const q = document.getElementById('user-question');
+  if (q) q.addEventListener('blur', function() { if (q.value.trim()) markQuestionAnswered(false); });
+})();
+
 checkReturn();
 </script>
 </body>
