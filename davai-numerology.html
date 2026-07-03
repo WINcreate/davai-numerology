@@ -533,6 +533,7 @@ async function startNumerologyCheckout() {
       body: JSON.stringify({
         amount: CONFIG.numerologyPrice,
         productName: CONFIG.numerologyProduct,
+        product: 'numerology',
         successUrl: CONFIG.siteUrl + '?numerology=success&session_id={CHECKOUT_SESSION_ID}',
         cancelUrl: CONFIG.siteUrl,
         voucherCode: promoCode || undefined
@@ -669,8 +670,10 @@ async function payForNatal() {
       body: JSON.stringify({
         amount: 890,
         productName: 'ДАВАЙ! Натална карта',
+        product: 'natal',
         successUrl: CONFIG.siteUrl + '?natal=success',
-        cancelUrl: CONFIG.siteUrl
+        cancelUrl: CONFIG.siteUrl,
+        voucherCode: promoCode || undefined
       })
     });
     const data = await res.json();
