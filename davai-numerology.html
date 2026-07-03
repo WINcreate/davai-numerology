@@ -1,0 +1,798 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ДАВАЙ! — Личен Нумерологичен Одит</title>
+
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600&family=DM+Sans:wght@300;400;500&display=swap');
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --green: #1D9E75; --green-light: #E1F5EE; --green-dark: #0F6E56; --green-deep: #085041;
+    --gold: #B08D57; --gold-dark: #7A5E2F; --gold-light: #FDF6EC;
+    --amber: #FAEEDA; --amber-text: #854F0B;
+    --red-light: #FCEBEB; --red-text: #A32D2D;
+    --purple-light: #F0EFFE; --purple-text: #4A3BAA;
+    --text: #1a1a1a; --text-secondary: #555; --text-tertiary: #999;
+    --border: rgba(0,0,0,0.1); --bg: #FAFAF8; --card: #fff; --radius: 14px;
+  }
+  body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+  .container { max-width: 640px; margin: 0 auto; padding: 2rem 1.5rem 5rem; }
+  .screen { display: none; }
+  .screen.active { display: block; }
+
+  .brand { font-family: 'Playfair Display', serif; font-size: 2.8rem; font-weight: 600; color: var(--text); letter-spacing: -0.02em; line-height: 1; margin-bottom: 4px; }
+  .brand-accent { color: var(--green); }
+  .brand-sub { font-family: 'Playfair Display', serif; font-size: 1.05rem; color: var(--text-secondary); margin-bottom: 2px; font-style: italic; }
+  .brand-label { font-size: 13px; color: var(--text-tertiary); letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 2rem; }
+  .intro-text { font-size: 15px; color: var(--text-secondary); line-height: 1.8; margin-bottom: 1.5rem; }
+  .small-note { font-size: 13px; color: var(--text-tertiary); line-height: 1.7; margin-top: 1.2rem; }
+
+  .btn { display: inline-flex; align-items: center; justify-content:center; gap: 8px; padding: 13px 28px; border-radius: 50px; font-size: 14px; font-weight: 500; font-family: 'DM Sans', sans-serif; cursor: pointer; transition: all 0.2s; border: none; text-decoration: none; }
+  .btn-primary { background: var(--green); color: white; }
+  .btn-primary:hover { background: var(--green-dark); transform: translateY(-1px); }
+  .btn-primary:active { transform: translateY(0); }
+  .btn-secondary { background: transparent; color: var(--text-secondary); border: 1px solid var(--border); }
+  .btn-secondary:hover { background: var(--card); }
+  .btn-ghost { background: transparent; color: var(--green); border: 1px solid var(--green); }
+  .btn-ghost:hover { background: var(--green-light); }
+  .btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+
+  .field-label { font-size: 12px; font-weight: 500; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 8px; }
+  .field-hint { font-size: 12px; color: var(--text-tertiary); margin-top: -8px; margin-bottom: 14px; }
+  .input-field, textarea, select {
+    width: 100%; border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px;
+    font-size: 14px; font-family: 'DM Sans', sans-serif; color: var(--text); background: var(--card);
+    margin-bottom: 16px; transition: border-color 0.2s;
+  }
+  textarea { min-height: 90px; line-height: 1.7; resize: vertical; }
+  .input-field:focus, textarea:focus, select:focus { outline: none; border-color: var(--green); }
+  .input-field::placeholder, textarea::placeholder { color: var(--text-tertiary); }
+
+  .form-row { display: grid; gap: 12px; }
+  .form-row-3 { grid-template-columns: 1fr 1fr 1fr; }
+  .form-row-2 { grid-template-columns: 1fr 1fr; }
+
+  .gender-toggle { display: flex; gap: 10px; margin-bottom: 16px; }
+  .gender-btn { flex: 1; padding: 12px; border-radius: 10px; border: 1.5px solid var(--border); background: var(--card); font-size: 14px; color: var(--text-secondary); cursor: pointer; font-family: 'DM Sans', sans-serif; transition: all 0.15s; }
+  .gender-btn.selected { background: var(--green); border-color: var(--green); color: #fff; }
+
+  .checkbox-row { display: flex; align-items: center; gap: 8px; margin: -4px 0 16px; font-size: 13px; color: var(--text-secondary); cursor: pointer; }
+  .checkbox-row input { width: 16px; height: 16px; accent-color: var(--green); cursor: pointer; }
+
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px 22px; margin-bottom: 14px; }
+
+  /* ── ТАБЛИЦА С ЧИСЛАТА ── */
+  .num-school { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px 20px; margin-bottom: 14px; }
+  .num-school-title { font-size: 12px; font-weight: 500; color: var(--green-dark); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 12px; }
+  .num-row { display: flex; justify-content: space-between; align-items: center; padding: 9px 0; border-bottom: 1px solid var(--border); }
+  .num-row:last-child { border-bottom: none; }
+  .num-label { font-size: 14px; color: var(--text-secondary); }
+  .num-val { font-family: 'Playfair Display', serif; font-size: 1.5rem; font-weight: 600; color: var(--green); line-height: 1; }
+  .num-val small { font-size: 0.9rem; color: var(--text-tertiary); font-family: 'DM Sans', sans-serif; }
+  .num-val.text { font-size: 1.05rem; }
+  .num-master { border: 2px solid var(--gold); background: var(--gold-light); border-radius: 10px; padding: 8px 12px; margin-top: 6px; }
+  .num-master .num-val { color: var(--gold-dark); }
+  .personal-year-card { background: var(--green-light); border: none; text-align: center; padding: 20px; }
+  .personal-year-card .num-val { font-size: 2.6rem; }
+
+  .match-msg { background: var(--amber); color: var(--amber-text); border-radius: var(--radius); padding: 16px 20px; font-size: 14px; line-height: 1.6; margin-bottom: 14px; }
+  .gift-text { font-size: 14px; color: var(--text-secondary); line-height: 1.8; font-style: italic; text-align: center; margin: 20px 4px; }
+
+  /* ── ПОЛЕ С ВЪПРОСИ ── */
+  .question-box { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px 20px; margin-bottom: 20px; }
+  .skip-link { font-size: 13px; color: var(--text-tertiary); cursor: pointer; text-decoration: none; }
+  .skip-link:hover { color: var(--green); }
+
+  /* ── ЗАМЪГЛЕН БЛОК ── */
+  .blur-block { position: relative; margin-bottom: 8px; }
+  .blur-titles { filter: blur(5px); user-select: none; pointer-events: none; opacity: 0.85; }
+  .blur-title { display: flex; align-items: center; gap: 10px; font-family: 'Playfair Display', serif; font-size: 1.25rem; color: var(--text); padding: 14px 0; border-bottom: 1px solid var(--border); }
+  .unlock-wrap { text-align: center; padding: 8px 0 4px; }
+  .unlock-lead { font-family: 'Playfair Display', serif; font-size: 1.15rem; color: var(--text); margin-bottom: 4px; }
+  .unlock-sub { font-size: 14px; color: var(--text-secondary); margin-bottom: 18px; }
+
+  /* ── ДОКЛАД ── */
+  .report-block-h { font-family: 'Playfair Display', serif; font-size: 1.35rem; color: var(--green-deep); margin: 26px 0 10px; }
+  .report-sub-h { font-weight: 600; color: var(--green-dark); margin: 16px 0 4px; font-size: 15px; }
+  .report-p { font-size: 15px; color: var(--text); line-height: 1.85; margin-bottom: 14px; }
+
+  /* ── UPSELL ── */
+  .upsell { border: 2px solid var(--green); border-radius: var(--radius); padding: 22px; margin-top: 1.5rem; background: var(--green-light); }
+  .upsell-title { font-family: 'Playfair Display', serif; font-size: 1.2rem; color: var(--green-deep); margin-bottom: 8px; }
+  .upsell-text { font-size: 14px; color: var(--green-dark); line-height: 1.7; margin-bottom: 14px; }
+  .price-inline { font-family: 'Playfair Display', serif; font-size: 1.3rem; font-weight: 600; }
+
+  /* ── LOADING ── */
+  .loading-wrap { padding: 3rem 0; text-align: center; }
+  .loading-title { font-family: 'Playfair Display', serif; font-size: 1.4rem; color: var(--text); margin-bottom: 8px; }
+  .loading-sub { font-size: 13px; color: var(--text-tertiary); margin-bottom: 2rem; }
+  .dots { display: flex; gap: 8px; justify-content: center; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); animation: pulse 1.2s ease-in-out infinite; }
+  .dot:nth-child(2) { animation-delay: 0.2s; }
+  .dot:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes pulse { 0%,80%,100%{opacity:0.2;transform:scale(0.8)} 40%{opacity:1;transform:scale(1)} }
+
+  .divider { border: none; border-top: 1px solid var(--border); margin: 24px 0; }
+  .err-msg { display: none; font-size: 13px; color: var(--red-text); background: var(--red-light); padding: 10px 14px; border-radius: 10px; margin-bottom: 14px; }
+
+  @media print {
+    .no-print { display: none !important; }
+    #screen-form, #screen-loading, .blur-block, .question-box, .match-msg { display: none !important; }
+    #screen-result { display: block !important; }
+    body { background: white !important; }
+    .container { padding: 0 !important; max-width: 100% !important; }
+    .num-school, .card { break-inside: avoid; }
+    @page { margin: 18mm; }
+  }
+  @media (max-width: 480px) {
+    .brand { font-size: 2.2rem; }
+    .form-row-3 { grid-template-columns: 1fr 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <!-- ═══════════ ФОРМА ═══════════ -->
+  <div id="screen-form" class="screen active">
+    <div class="brand">ДА<span class="brand-accent">ВАЙ</span><span class="brand-accent">!</span></div>
+    <div class="brand-sub">Твоят вътрешен компас</div>
+    <div class="brand-label">Личен Нумерологичен Одит</div>
+
+    <p class="intro-text">
+      Попълни своите данни. Ще изчислим личните ти числа напълно безплатно.
+      Ще видиш числата от трите нумерологични традиции още преди да решиш дали искаш да продължиш.
+    </p>
+
+    <div class="field-label">Собствено име</div>
+    <input type="text" class="input-field" id="first-name" placeholder="напр. Иван">
+
+    <div class="field-label">Бащино име</div>
+    <input type="text" class="input-field" id="middle-name" placeholder="напр. Петров">
+
+    <div class="field-label">Фамилно име по рождение</div>
+    <input type="text" class="input-field" id="last-name" placeholder="напр. Георгиев">
+    <div class="field-hint">Фамилията преди брака, ако е различна.</div>
+
+    <div class="field-label">Дата на раждане</div>
+    <div class="form-row form-row-3" style="margin-bottom:16px;">
+      <input type="number" class="input-field" id="birth-day" placeholder="Ден" min="1" max="31" style="margin-bottom:0;">
+      <input type="number" class="input-field" id="birth-month" placeholder="Месец" min="1" max="12" style="margin-bottom:0;">
+      <input type="number" class="input-field" id="birth-year" placeholder="Година" min="1900" max="2010" style="margin-bottom:0;">
+    </div>
+
+    <div class="field-label">Пол</div>
+    <div class="gender-toggle">
+      <button type="button" class="gender-btn" id="gender-male" onclick="setGender('male')">Мъж</button>
+      <button type="button" class="gender-btn" id="gender-female" onclick="setGender('female')">Жена</button>
+    </div>
+
+    <div class="field-label">Час на раждане</div>
+    <div class="form-row form-row-2" id="time-fields" style="margin-bottom:10px;">
+      <input type="number" class="input-field" id="birth-hour" placeholder="Час (0–23)" min="0" max="23" style="margin-bottom:0;">
+      <input type="number" class="input-field" id="birth-minute" placeholder="Минути (0–59)" min="0" max="59" style="margin-bottom:0;">
+    </div>
+    <label class="checkbox-row">
+      <input type="checkbox" id="no-time" onchange="toggleTimeFields()">
+      Не знам точния час
+    </label>
+
+    <div class="field-label">Имейл</div>
+    <input type="email" class="input-field" id="email" placeholder="твоят@имейл.com">
+
+    <div class="field-label">Телефон</div>
+    <input type="tel" class="input-field" id="phone" placeholder="+359...">
+
+    <div class="err-msg" id="form-error"></div>
+
+    <button class="btn btn-primary" id="submit-btn" onclick="submitForm()" style="width:100%;padding:16px;">
+      Изчисли безплатно →
+    </button>
+
+    <p class="small-note">
+      Ако продължиш с нас — ще вървим заедно.<br>
+      Ако продължиш сам — ще се радваме, че сме ти помогнали да откриеш посоката.
+    </p>
+  </div>
+
+  <!-- ═══════════ LOADING ═══════════ -->
+  <div id="screen-loading" class="screen">
+    <div class="loading-wrap">
+      <div class="loading-title">Разчитаме числата ти...</div>
+      <div class="loading-sub">Свързваме трите традиции в един разказ.</div>
+      <div class="dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
+    </div>
+  </div>
+
+  <!-- ═══════════ РЕЗУЛТАТ ═══════════ -->
+  <div id="screen-result" class="screen">
+    <div class="brand" style="font-size:2rem;">ДА<span class="brand-accent">ВАЙ</span><span class="brand-accent">!</span></div>
+    <div class="brand-label">Твоите числа</div>
+
+    <div id="num-table"></div>
+    <div id="match-msg"></div>
+
+    <div class="gift-text">
+      Получаваш изчисленията като подарък, защото числата са твои.<br>
+      Ти си ги донесъл. Ние само ги изчисляваме за теб.
+    </div>
+
+    <!-- ЗАКЛЮЧЕНА ЧАСТ (изчезва след плащане) -->
+    <div id="free-gate" class="no-print">
+      <div class="question-box">
+        <div class="field-label">Преди да продължим</div>
+        <textarea id="user-question" placeholder="Има ли нещо конкретно което искаш да разгледаме за тази година?"></textarea>
+        <div style="text-align:right;"><a class="skip-link" onclick="skipQuestion()">Пропусни →</a></div>
+      </div>
+
+      <div class="blur-block">
+        <div class="blur-titles">
+          <div class="blur-title">🪞 Вродена природа</div>
+          <div class="blur-title">🪞 Вибрацията ти</div>
+          <div class="blur-title">🪞 Кармичен контекст</div>
+          <div class="blur-title">🪞 Лична година</div>
+          <div class="blur-title">🪞 Твоята мисия</div>
+        </div>
+      </div>
+
+      <div class="unlock-wrap">
+        <div class="unlock-lead">Твоите числа вече са изчислени.</div>
+        <div class="unlock-sub">Следва тяхната история.</div>
+        <button class="btn btn-primary" id="unlock-btn" onclick="startNumerologyCheckout()" style="width:100%;padding:16px;">
+          Отключи своя одит — €12.90
+        </button>
+        <div class="err-msg" id="checkout-error" style="margin-top:12px;"></div>
+        <div style="font-size:12px;color:var(--text-tertiary);margin-top:12px;">🔒 Плащането е обработено от Stripe.</div>
+      </div>
+    </div>
+
+    <!-- ПЪЛЕН ДОКЛАД (след плащане) -->
+    <div id="report-part" style="display:none;">
+      <hr class="divider">
+      <div id="report-content"></div>
+
+      <div class="card no-print" style="margin-top:1.5rem;">
+        <div id="email-note" style="font-size:13px;color:var(--green-dark);margin-bottom:12px;"></div>
+        <button class="btn btn-ghost" onclick="window.print()">⬇ Свали като PDF</button>
+      </div>
+
+      <!-- UPSELL A: Натална карта -->
+      <div class="upsell no-print" id="natal-upsell">
+        <div class="upsell-title">Искаш ли да видиш още по-дълбоката картина?</div>
+        <div class="upsell-text">
+          Нумерологията разказва историята чрез числата. Наталната карта я допълва чрез
+          разположението на небесните тела в момента на твоето раждане.<br>
+          <em>Друга традиция. Същият човек. Пълната картина.</em>
+        </div>
+        <div class="field-label">Има ли тема, която искаш наталната карта да разгледа по-дълбоко?</div>
+        <select id="natal-theme">
+          <option value="">— Без конкретна тема —</option>
+          <option value="Любов">Любов</option>
+          <option value="Кариера">Кариера</option>
+          <option value="Здраве">Здраве</option>
+          <option value="Семейство">Семейство</option>
+          <option value="__free__">Свободен текст</option>
+        </select>
+        <input type="text" class="input-field" id="natal-theme-free" placeholder="Опиши темата..." style="display:none;">
+        <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
+          <button class="btn btn-primary" onclick="payForNatal()">Добави Натална карта →</button>
+          <div style="color:var(--green-dark);"><span class="price-inline">€8,90</span> · еднократно</div>
+          <a class="skip-link" onclick="hideNatalUpsell()">Пропусни →</a>
+        </div>
+      </div>
+
+      <!-- НАТАЛНА ФОРМА (след плащане на add-on) -->
+      <div class="card no-print" id="natal-form" style="display:none;">
+        <div class="upsell-title" style="color:var(--purple-text);margin-bottom:12px;">Натална карта — данни за раждане</div>
+        <div class="field-label">Град на раждане</div>
+        <input type="text" class="input-field" id="natal-city" placeholder="напр. Sofia или London">
+        <div class="field-label">Часова зона (UTC офсет)</div>
+        <select id="natal-tzone">
+          <option value="2" selected>UTC+2 (България, Гърция)</option>
+          <option value="1">UTC+1 (Германия, Франция)</option>
+          <option value="0">UTC+0 (Великобритания)</option>
+          <option value="3">UTC+3 (Турция, Москва)</option>
+          <option value="-5">UTC-5 (Ню Йорк)</option>
+          <option value="-8">UTC-8 (Лос Анджелис)</option>
+        </select>
+        <button class="btn btn-primary" id="natal-submit-btn" onclick="fetchNatalChart()" style="width:100%;">Изчисли натална карта →</button>
+        <div class="err-msg" id="natal-error"></div>
+      </div>
+
+      <div id="natal-results" style="margin-top:1rem;"></div>
+
+      <!-- UPSELL B: Личен Одит -->
+      <div class="upsell no-print" id="odit-upsell" style="background:var(--gold-light);border-color:var(--gold);">
+        <div class="upsell-title" style="color:var(--gold-dark);">Познаваш природата си. Как живееш спрямо нея?</div>
+        <div class="upsell-text" style="color:var(--gold-dark);">
+          Нумерологичният Одит показва с каква природа си роден.
+          ДАВАЙ! Личният Одит показва доколко животът ти днес е в съзвучие с нея.
+        </div>
+        <button class="btn btn-primary" onclick="goPersonalOdit()" style="background:var(--gold-dark);">Продължи към Личния Одит →</button>
+      </div>
+
+      <div style="text-align:center;margin-top:2rem;font-size:14px;color:var(--text-secondary);line-height:1.8;">
+        Продължи с нас или продължи сам.<br>Най-важното е да продължиш смело.<br><br>
+        <strong style="font-family:'Playfair Display',serif;font-size:1.3rem;color:var(--green);">ДАВАЙ!</strong><br>
+        <em>Твоят вътрешен компас.</em>
+      </div>
+      <div class="no-print" style="text-align:center;margin-top:2rem;">
+        <button class="btn btn-secondary" onclick="resetAll()">Започни нов одит →</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ─── КОНФИГУРАЦИЯ ────────────────────────────────────────────────────────────
+const CONFIG = {
+  workerUrl: 'https://davai-audit.kaloyan-5b3.workers.dev',
+  // ДЕВ: сочи към dev файла, за да работи връщането от Stripe.
+  // ПРОДАКШЪН: след преименуване на index.html → смени на 'https://natal.davai.v.bg'
+  siteUrl: 'https://natal.davai.v.bg/davai-numerology.html',
+  numerologyPrice: 1290,                                                     // €12.90 в центове
+  numerologyProduct: 'ДАВАЙ! Личен Нумерологичен Одит',
+  numerologyPaymentLink: 'https://buy.stripe.com/bJeaEXgCQ0YCaxQ3KO7Vm03',  // fallback
+  natalPaymentLink: 'https://buy.stripe.com/9B6dR92M06iWeO6gxA7Vm01',       // €8.90 add-on
+  personalOditLink: 'https://buy.stripe.com/00w4gz4U8ePs6hA6X07Vm02'        // €14.60 upsell
+};
+
+const LS_DATA = 'davai_num_data';
+const LS_NUMS = 'davai_num_numbers';
+const LS_REPORT = 'davai_num_report';
+const LS_CHECKOUT = 'davai_num_checkout';
+
+var promoCode = new URLSearchParams(window.location.search).get('promo') || null;
+let numData = null;      // данните от формата
+let numbers = null;      // изчислените числа
+let gender = null;
+
+// ─── НАВИГАЦИЯ ───────────────────────────────────────────────────────────────
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('screen-' + id).classList.add('active');
+  window.scrollTo(0, 0);
+}
+
+function setGender(g) {
+  gender = g;
+  document.getElementById('gender-male').classList.toggle('selected', g === 'male');
+  document.getElementById('gender-female').classList.toggle('selected', g === 'female');
+}
+
+function toggleTimeFields() {
+  const off = document.getElementById('no-time').checked;
+  document.getElementById('time-fields').style.display = off ? 'none' : 'grid';
+}
+
+// ─── СЪСТОЯНИЕ ───────────────────────────────────────────────────────────────
+function saveState() {
+  try {
+    sessionStorage.setItem(LS_DATA, JSON.stringify(numData));
+    sessionStorage.setItem(LS_NUMS, JSON.stringify(numbers));
+  } catch(e) {}
+}
+function loadState() {
+  try {
+    const d = sessionStorage.getItem(LS_DATA);
+    const n = sessionStorage.getItem(LS_NUMS);
+    if (!d || !n) return false;
+    numData = JSON.parse(d);
+    numbers = JSON.parse(n);
+    return true;
+  } catch(e) { return false; }
+}
+
+// ─── SUBMIT НА ФОРМАТА ───────────────────────────────────────────────────────
+async function submitForm() {
+  const err = document.getElementById('form-error');
+  err.style.display = 'none';
+
+  const noTime = document.getElementById('no-time').checked;
+  const data = {
+    first_name: document.getElementById('first-name').value.trim(),
+    middle_name: document.getElementById('middle-name').value.trim(),
+    last_name: document.getElementById('last-name').value.trim(),
+    birth_day: parseInt(document.getElementById('birth-day').value),
+    birth_month: parseInt(document.getElementById('birth-month').value),
+    birth_year: parseInt(document.getElementById('birth-year').value),
+    gender: gender,
+    birth_hour: noTime ? null : (document.getElementById('birth-hour').value === '' ? null : parseInt(document.getElementById('birth-hour').value)),
+    birth_minute: noTime ? null : (document.getElementById('birth-minute').value === '' ? 0 : parseInt(document.getElementById('birth-minute').value)),
+    email: document.getElementById('email').value.trim(),
+    phone: document.getElementById('phone').value.trim(),
+    user_question: null,
+    natal_theme: null
+  };
+
+  // Валидация
+  const problems = [];
+  if (!data.first_name) problems.push('собствено име');
+  if (!data.middle_name) problems.push('бащино име');
+  if (!data.last_name) problems.push('фамилно име');
+  if (!(data.birth_day >= 1 && data.birth_day <= 31)) problems.push('ден');
+  if (!(data.birth_month >= 1 && data.birth_month <= 12)) problems.push('месец');
+  if (!(data.birth_year >= 1900 && data.birth_year <= 2010)) problems.push('година');
+  if (!gender) problems.push('пол');
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(data.email)) problems.push('валиден имейл');
+  if (!data.phone) problems.push('телефон');
+  if (!noTime && data.birth_hour === null) problems.push('час на раждане (или отметни „Не знам")');
+
+  if (problems.length) {
+    err.textContent = 'Моля попълни: ' + problems.join(', ') + '.';
+    err.style.display = 'block';
+    return;
+  }
+
+  const btn = document.getElementById('submit-btn');
+  btn.disabled = true; btn.textContent = 'Изчислява се...';
+
+  try {
+    const res = await fetch(CONFIG.workerUrl + '/numerology', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(Object.assign({}, data, { generate_report: false }))
+    });
+    const json = await res.json();
+    if (json.error) throw new Error(json.error);
+    numData = data;
+    numbers = json.numbers;
+    saveState();
+    showScreen('result');
+    renderFree(false);
+  } catch(e) {
+    err.textContent = 'Грешка при изчислението: ' + e.message;
+    err.style.display = 'block';
+    btn.disabled = false; btn.textContent = 'Изчисли безплатно →';
+  }
+}
+
+// ─── ТАБЛИЦА С ЧИСЛАТА ───────────────────────────────────────────────────────
+function numRow(label, value, extra) {
+  return '<div class="num-row"><span class="num-label">' + label + '</span>' +
+         '<span class="num-val' + (extra || '') + '">' + value + '</span></div>';
+}
+
+function renderFree(paid) {
+  const n = numbers;
+  let html = '';
+
+  // Питагорейска
+  html += '<div class="num-school"><div class="num-school-title">Питагорейска школа</div>';
+  html += numRow('Жизнено число', n.pyth_life_path);
+  html += numRow('Число на душата', n.pyth_soul);
+  html += numRow('Число на личността', n.pyth_personality);
+  html += numRow('Число на съдбата', n.pyth_destiny);
+  html += '</div>';
+  if (n.pyth_master) {
+    html += '<div class="num-master"><div class="num-row" style="border:none;padding:2px 0;">' +
+            '<span class="num-label" style="font-weight:600;color:var(--gold-dark);">★ Майсторско число</span>' +
+            '<span class="num-val">' + n.pyth_master + '</span></div></div>';
+  }
+
+  // Халдейска
+  html += '<div class="num-school"><div class="num-school-title">Халдейска школа</div>';
+  html += numRow('Жизнено число', n.chald_double + ' <small>→ ' + n.chald_single + '</small>');
+  html += numRow('Число на пълното рождено име', n.chald_name);
+  html += '</div>';
+
+  // Ведическа
+  html += '<div class="num-school"><div class="num-school-title">Ведическа школа</div>';
+  html += numRow('Психично число', n.ved_psychic);
+  html += numRow('Число на съдбата', n.ved_destiny);
+  html += numRow('Куа число', n.ved_kua);
+  if (n.ved_hour_planet) html += numRow('Планетарен час', n.ved_hour_planet, ' text');
+  html += '</div>';
+
+  // Лична година
+  html += '<div class="num-school personal-year-card"><div class="num-school-title" style="color:var(--green-dark);">Лична година ' + n.currentYear + '</div>' +
+          '<div class="num-val">' + n.personal_year + '</div></div>';
+
+  document.getElementById('num-table').innerHTML = html;
+
+  // Съобщение за съвпадение
+  const msg = matchMessage(n);
+  document.getElementById('match-msg').innerHTML = msg ? '<div class="match-msg">✦ ' + msg + '</div>' : '';
+
+  // Заключена / отключена част
+  document.getElementById('free-gate').style.display = paid ? 'none' : 'block';
+  document.getElementById('report-part').style.display = paid ? 'block' : 'none';
+}
+
+function matchMessage(n) {
+  if (n.match_all) return 'Денят, датата и името ти сочат едно и също. Това се случва при 1 на 81 човека.';
+  if (n.match_name) return 'Датата и името ти вибрират на едно число. Среща се при около 1 на 9 човека.';
+  if (n.match_psychic) return 'Денят на раждане потвърждава жизнения ти път.';
+  return null;
+}
+
+function skipQuestion() {
+  document.getElementById('user-question').value = '';
+  document.getElementById('unlock-btn').scrollIntoView({ behavior: 'smooth' });
+}
+
+// ─── ПЛАЩАНЕ ЗА НУМЕРОЛОГИЧНИЯ ОДИТ ──────────────────────────────────────────
+async function startNumerologyCheckout() {
+  const q = document.getElementById('user-question').value.trim();
+  numData.user_question = q || null;
+  saveState();
+  sessionStorage.setItem(LS_CHECKOUT, '1');
+
+  const err = document.getElementById('checkout-error');
+  err.style.display = 'none';
+  const btn = document.getElementById('unlock-btn');
+  btn.disabled = true; btn.textContent = 'Пренасочване към плащане...';
+
+  try {
+    const res = await fetch(CONFIG.workerUrl + '/create-checkout', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        amount: CONFIG.numerologyPrice,
+        productName: CONFIG.numerologyProduct,
+        successUrl: CONFIG.siteUrl + '?numerology=success&session_id={CHECKOUT_SESSION_ID}',
+        cancelUrl: CONFIG.siteUrl,
+        voucherCode: promoCode || undefined
+      })
+    });
+    const data = await res.json();
+    if (data.url) { window.location.href = data.url; return; }
+    throw new Error(data.error || 'Няма линк за плащане');
+  } catch(e) {
+    // Fallback към готовия Payment Link
+    window.location.href = CONFIG.numerologyPaymentLink;
+  }
+}
+
+// ─── ГЕНЕРИРАНЕ НА ДОКЛАДА (след плащане) ────────────────────────────────────
+async function generateReport(sessionId) {
+  showScreen('loading');
+  try {
+    const res = await fetch(CONFIG.workerUrl + '/numerology', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(Object.assign({}, numData, {
+        generate_report: true,
+        session_id: sessionId || undefined
+      }))
+    });
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+
+    sessionStorage.setItem(LS_REPORT, data.report);
+    sessionStorage.removeItem(LS_CHECKOUT);
+
+    showScreen('result');
+    renderFree(true);
+    showReport(data.report, data.emailed);
+  } catch(e) {
+    showScreen('result');
+    renderFree(false);
+    const err = document.getElementById('checkout-error');
+    err.textContent = 'Грешка при генериране на доклада: ' + e.message + '. Презареди страницата, за да опиташ пак.';
+    err.style.display = 'block';
+  }
+}
+
+// ─── ПОКАЗВАНЕ НА ДОКЛАДА ────────────────────────────────────────────────────
+function showReport(text, emailed) {
+  document.getElementById('report-content').innerHTML = formatReport(text);
+  const note = document.getElementById('email-note');
+  note.textContent = emailed
+    ? '✓ Копие е изпратено на ' + (numData.email || 'твоя имейл') + '.'
+    : 'Запази резултата:';
+  document.getElementById('free-gate').style.display = 'none';
+  document.getElementById('report-part').style.display = 'block';
+}
+
+function formatReport(text) {
+  const lines = (text || '').split('\n');
+  let html = '';
+  for (let raw of lines) {
+    const line = raw.trim();
+    if (!line) continue;
+    const esc = line.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    if (/^БЛОК\s*\d/i.test(line) || /^ВСТЪПЛЕНИЕ/i.test(line)) {
+      html += '<div class="report-block-h">' + esc.replace(/^БЛОК\s*\d+\s*:?\s*/i, '') + '</div>';
+    } else if (/^(МИСИЯТА ТИ Е:|ИНСТРУМЕНТЪТ ТИ Е:|КАПАНЪТ)/i.test(line)) {
+      html += '<div class="report-sub-h">' + esc + '</div>';
+    } else if (line === line.toUpperCase() && line.length < 55 && /[А-Я]/.test(line)) {
+      html += '<div class="report-block-h">' + esc + '</div>';
+    } else {
+      html += '<p class="report-p">' + esc + '</p>';
+    }
+  }
+  return html;
+}
+
+// ─── ПРОВЕРКА ПРИ ВРЪЩАНЕ ОТ ПЛАЩАНЕ ─────────────────────────────────────────
+function checkReturn() {
+  const p = new URLSearchParams(window.location.search);
+
+  if (p.get('numerology') === 'success') {
+    const sid = p.get('session_id') || null;
+    window.history.replaceState({}, document.title, window.location.pathname);
+    if (!loadState()) { showScreen('form'); return; }
+    const allowed = sid || sessionStorage.getItem(LS_CHECKOUT) === '1';
+    if (allowed) { generateReport(sid); }
+    else { showScreen('result'); renderFree(false); }
+    return;
+  }
+
+  if (p.get('natal') === 'success') {
+    window.history.replaceState({}, document.title, window.location.pathname);
+    if (!loadState()) { showScreen('form'); return; }
+    const report = sessionStorage.getItem(LS_REPORT);
+    showScreen('result');
+    renderFree(true);
+    if (report) showReport(report, true);
+    // Разкрий наталната форма
+    document.getElementById('natal-upsell').style.display = 'none';
+    document.getElementById('natal-form').style.display = 'block';
+    setTimeout(function() {
+      document.getElementById('natal-form').scrollIntoView({ behavior: 'smooth' });
+    }, 400);
+    return;
+  }
+
+  // Ако вече има генериран доклад в тази сесия (напр. презареждане)
+  if (sessionStorage.getItem(LS_REPORT) && loadState()) {
+    showScreen('result');
+    renderFree(true);
+    showReport(sessionStorage.getItem(LS_REPORT), true);
+    return;
+  }
+
+  showScreen('form');
+}
+
+// ─── НАТАЛНА КАРТА (add-on) ──────────────────────────────────────────────────
+function hideNatalUpsell() {
+  document.getElementById('natal-upsell').style.display = 'none';
+}
+
+async function payForNatal() {
+  // Запази избраната тема
+  const sel = document.getElementById('natal-theme').value;
+  let theme = sel;
+  if (sel === '__free__') theme = document.getElementById('natal-theme-free').value.trim() || null;
+  numData.natal_theme = theme || null;
+  saveState();
+  // Програматичен checkout — за да върне на правилния домейн (natal.davai.v.bg?natal=success)
+  try {
+    const res = await fetch(CONFIG.workerUrl + '/create-checkout', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        amount: 890,
+        productName: 'ДАВАЙ! Натална карта',
+        successUrl: CONFIG.siteUrl + '?natal=success',
+        cancelUrl: CONFIG.siteUrl
+      })
+    });
+    const data = await res.json();
+    if (data.url) { window.location.href = data.url; return; }
+    throw new Error(data.error || 'no url');
+  } catch(e) {
+    window.location.href = CONFIG.natalPaymentLink; // краен fallback
+  }
+}
+
+async function fetchNatalChart() {
+  const city = document.getElementById('natal-city').value.trim();
+  const tzone = document.getElementById('natal-tzone').value;
+  const err = document.getElementById('natal-error');
+  err.style.display = 'none';
+
+  if (!city) {
+    err.textContent = 'Моля въведи град на раждане.';
+    err.style.display = 'block';
+    return;
+  }
+
+  const day = numData.birth_day, month = numData.birth_month, year = numData.birth_year;
+  const hour = (numData.birth_hour === null || numData.birth_hour === undefined) ? 12 : numData.birth_hour;
+  const min = (numData.birth_minute === null || numData.birth_minute === undefined) ? 0 : numData.birth_minute;
+
+  const btn = document.getElementById('natal-submit-btn');
+  btn.disabled = true; btn.textContent = 'Изчислява се...';
+
+  try {
+    const res = await fetch(CONFIG.workerUrl + '/natal', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ day, month, year, hour, min, city, tzone })
+    });
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+    document.getElementById('natal-form').style.display = 'none';
+    renderNatal(data.planets);
+    fetchNatalAnalysis(data.planets);
+  } catch(e) {
+    err.textContent = 'Грешка: ' + e.message;
+    err.style.display = 'block';
+    btn.disabled = false; btn.textContent = 'Изчисли натална карта →';
+  }
+}
+
+const SIGN_BG = { Aries:'Овен', Taurus:'Телец', Gemini:'Близнаци', Cancer:'Рак', Leo:'Лъв', Virgo:'Дева', Libra:'Везни', Scorpio:'Скорпион', Sagittarius:'Стрелец', Capricorn:'Козирог', Aquarius:'Водолей', Pisces:'Риби' };
+const PLANET_BG = { Sun:'☀️ Слънце', Moon:'🌙 Луна', Mercury:'☿ Меркурий', Venus:'♀ Венера', Mars:'♂ Марс', Jupiter:'♃ Юпитер', Saturn:'♄ Сатурн', Uranus:'♅ Уран', Neptune:'♆ Нептун', Pluto:'♇ Плутон' };
+const SIGNS_ORDER = ['Aries','Taurus','Gemini','Cancer','Leo','Virgo','Libra','Scorpio','Sagittarius','Capricorn','Aquarius','Pisces'];
+const MAIN_PLANETS = ['Sun','Moon','Mercury','Venus','Mars','Jupiter','Saturn','Uranus','Neptune','Pluto'];
+function degToSign(deg) { return SIGNS_ORDER[Math.floor((deg % 360) / 30)]; }
+
+function renderNatal(data) {
+  const planets = (data.planets || []).filter(p => MAIN_PLANETS.includes(p.name));
+  let html = '<div class="card" style="border:2px solid var(--purple-light);">';
+  html += '<div class="num-school-title" style="color:var(--purple-text);">Натална карта</div>';
+  html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">';
+  if (data.ascendant !== undefined) {
+    html += '<div style="background:var(--purple-light);border-radius:10px;padding:10px 12px;"><div style="font-size:12px;color:var(--purple-text);font-weight:500;">⬆️ Асцендент</div><div style="font-size:15px;font-weight:600;">' + (SIGN_BG[degToSign(data.ascendant)] || '') + '</div></div>';
+  }
+  planets.forEach(p => {
+    html += '<div style="background:#faf9ff;border:1px solid var(--purple-light);border-radius:10px;padding:10px 12px;"><div style="font-size:12px;color:var(--purple-text);">' + (PLANET_BG[p.name] || p.name) + '</div><div style="font-size:15px;font-weight:600;">' + (SIGN_BG[p.sign] || p.sign || '') + '</div></div>';
+  });
+  html += '</div></div>';
+  document.getElementById('natal-results').innerHTML = html;
+}
+
+async function fetchNatalAnalysis(planetData) {
+  const planets = (planetData.planets || []).filter(p => MAIN_PLANETS.includes(p.name));
+  const positions = planets.map(p => (PLANET_BG[p.name] || p.name) + ' в ' + (SIGN_BG[p.sign] || p.sign)).join(', ');
+  const asc = planetData.ascendant !== undefined ? ('Асцендент в ' + (SIGN_BG[degToSign(planetData.ascendant)] || '')) : '';
+  const theme = numData.natal_theme;
+
+  const prompt = 'Ти си опитен астролог. Говориш директно и топло, на "ти", на български. ' +
+    'Този човек вече получи нумерологичен одит. Сега допълни картината чрез наталната му карта.\n\n' +
+    'Планетарни позиции: ' + positions + (asc ? ('. ' + asc) : '') + '.\n' +
+    (theme ? ('Фокусирай анализа върху темата: ' + theme + '.\n') : '') +
+    '\nНапиши течен текст 250-350 думи: какви вродени сили и предизвикателства показва картата, ' +
+    'как допълва нумерологичния профил, и една конкретна насока. ' +
+    (theme ? 'Обвържи го ясно с темата.' : '') +
+    ' Без изброяване на планети механично. Без "може би". Само български език.';
+
+  const wrap = document.createElement('div');
+  wrap.className = 'card';
+  wrap.style.marginTop = '10px';
+  wrap.innerHTML = '<div class="loading-sub" style="text-align:center;">Разчитаме наталната карта...</div>';
+  document.getElementById('natal-results').appendChild(wrap);
+
+  try {
+    const res = await fetch(CONFIG.workerUrl + '/analyze', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prompt, max_tokens: 1500 })
+    });
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+    wrap.innerHTML = '<div class="num-school-title" style="color:var(--purple-text);">Разчитане на картата</div>' + formatReport(data.content);
+  } catch(e) {
+    wrap.innerHTML = '<div style="color:var(--red-text);font-size:13px;">Грешка при анализа: ' + e.message + '</div>';
+  }
+}
+
+function goPersonalOdit() {
+  window.location.href = CONFIG.personalOditLink;
+}
+
+function resetAll() {
+  try {
+    sessionStorage.removeItem(LS_DATA);
+    sessionStorage.removeItem(LS_NUMS);
+    sessionStorage.removeItem(LS_REPORT);
+    sessionStorage.removeItem(LS_CHECKOUT);
+  } catch(e) {}
+  window.location.href = window.location.pathname;
+}
+
+// ─── ИНИЦИАЛИЗАЦИЯ ───────────────────────────────────────────────────────────
+document.getElementById('natal-theme').addEventListener('change', function() {
+  document.getElementById('natal-theme-free').style.display = this.value === '__free__' ? 'block' : 'none';
+});
+checkReturn();
+</script>
+</body>
+</html>
