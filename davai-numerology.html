@@ -5,6 +5,15 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>ДАВАЙ! — Личен Нумерологичен Одит</title>
 
+<!-- Google Analytics 4 (GA4) — един общ property за двете фунии (одит + нумерология) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-GY8KMVSK0J"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-GY8KMVSK0J');
+</script>
+
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600&family=DM+Sans:wght@300;400;500&display=swap');
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -281,7 +290,7 @@
 
       <div class="card no-print" style="margin-top:1.5rem;">
         <div id="email-note" style="font-size:13px;color:var(--green-dark);margin-bottom:12px;"></div>
-        <button class="btn btn-ghost" onclick="window.print()">⬇ Свали като PDF</button>
+        <button class="btn btn-ghost" onclick="trackEvent('pdf_download', {}); window.print()">⬇ Свали като PDF</button>
       </div>
 
       <!-- UPSELL A: Натална карта -->
@@ -376,10 +385,13 @@ let numData = null;      // данните от формата
 let numbers = null;      // изчислените числа
 let gender = null;
 
-// ─── ANALYTICS (само GA4 / gtag) ─────────────────────────────────────────────
+// ─── ANALYTICS (GA4 / gtag) ──────────────────────────────────────────────────
+// funnel_type разграничава двете фунии в общия GA4 property (един Measurement ID).
+// Тук е 'numerology'; в одит index.html е 'audit'.
+const FUNNEL_TYPE = 'numerology';
 const DEV = /localhost|127\.0\.0\.1/.test(location.hostname) || location.protocol === 'file:' || new URLSearchParams(location.search).has('debug');
 function trackEvent(eventName, eventData) {
-  const data = Object.assign({ timestamp: new Date().toISOString(), page_url: location.href }, eventData || {});
+  const data = Object.assign({ funnel_type: FUNNEL_TYPE, timestamp: new Date().toISOString(), page_url: location.href }, eventData || {});
   if (DEV) { data.debug_mode = true; console.log('[track]', eventName, data); }
   try { if (typeof window.gtag === 'function') window.gtag('event', eventName, data); } catch(e) {}
 }
@@ -633,7 +645,7 @@ async function generateReport(sessionId) {
     sessionStorage.setItem(LS_REPORT, data.report);
     sessionStorage.removeItem(LS_CHECKOUT);
 
-    trackEvent('purchase_complete', { value: 12.90, currency: 'EUR' });
+    trackEvent('purchase', { value: 12.90, currency: 'EUR' });
     showScreen('result');
     renderFree(true);
     showReport(data.report, data.emailed);
@@ -654,6 +666,7 @@ function showReport(text, emailed) {
   note.textContent = emailed
     ? '✓ Копие е изпратено на ' + (numData.email || 'твоя имейл') + '.'
     : 'Запази резултата:';
+  if (emailed) trackEvent('email_sent', {});
   document.getElementById('free-gate').style.display = 'none';
   document.getElementById('report-part').style.display = 'block';
 }
