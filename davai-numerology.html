@@ -14,6 +14,24 @@
   gtag('config', 'G-GY8KMVSK0J');
 </script>
 
+<!-- Meta Pixel Code -->
+<script>
+!function(f,b,e,v,n,t,s)
+{if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+n.queue=[];t=b.createElement(e);t.async=!0;
+t.src=v;s=b.getElementsByTagName(e)[0];
+s.parentNode.insertBefore(t,s)}(window, document,'script',
+'https://connect.facebook.net/en_US/fbevents.js');
+fbq('init', '1275180257473388');
+fbq('track', 'PageView');
+</script>
+<noscript><img height="1" width="1" style="display:none"
+src="https://www.facebook.com/tr?id=1275180257473388&ev=PageView&noscript=1"
+/></noscript>
+<!-- End Meta Pixel Code -->
+
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600&family=DM+Sans:wght@300;400;500&display=swap');
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -365,15 +383,26 @@
 // ─── КОНФИГУРАЦИЯ ────────────────────────────────────────────────────────────
 const CONFIG = {
   workerUrl: 'https://davai-audit.kaloyan-5b3.workers.dev',
-  // ДЕВ: сочи към dev файла, за да работи връщането от Stripe.
-  // ПРОДАКШЪН: след преименуване на index.html → смени на 'https://natal.davai.v.bg'
-  siteUrl: 'https://natal.davai.v.bg/davai-numerology.html',
+  siteUrl: 'https://natal.davai.v.bg',
   numerologyPrice: 1290,                                                     // €12.90 в центове
   numerologyProduct: 'ДАВАЙ! Личен Нумерологичен Одит',
   numerologyPaymentLink: 'https://buy.stripe.com/bJeaEXgCQ0YCaxQ3KO7Vm03',  // fallback
-  natalPaymentLink: 'https://buy.stripe.com/9B6dR92M06iWeO6gxA7Vm01',       // €8.90 add-on
+  natalPaymentLink: 'https://buy.stripe.com/bJedR9fyMePs5dw2GK7Vm04',       // €8.90 add-on (numerology-специфичен redirect)
   personalOditLink: 'https://buy.stripe.com/00w4gz4U8ePs6hA6X07Vm02'        // €14.60 upsell
 };
+
+// ─── META ATTRIBUTION (fbclid/_fbc/_fbp) — за Meta CAPI Purchase tracking ────
+function getCookie(name) {
+  const match = document.cookie.match('(^|;)\\s*' + name + '\\s*=\\s*([^;]+)');
+  return match ? match.pop() : null;
+}
+function getFbParams() {
+  return {
+    fbclid: new URLSearchParams(window.location.search).get('fbclid') || null,
+    fbc: getCookie('_fbc'),
+    fbp: getCookie('_fbp')
+  };
+}
 
 const LS_DATA = 'davai_num_data';
 const LS_NUMS = 'davai_num_numbers';
@@ -616,6 +645,7 @@ async function startNumerologyCheckout() {
   btn.disabled = true; btn.textContent = 'Пренасочване към плащане...';
 
   try {
+    const fb = getFbParams();
     const res = await fetch(CONFIG.workerUrl + '/create-checkout', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -625,7 +655,8 @@ async function startNumerologyCheckout() {
         product: 'numerology',
         successUrl: CONFIG.siteUrl + '?numerology=success&session_id={CHECKOUT_SESSION_ID}',
         cancelUrl: CONFIG.siteUrl,
-        voucherCode: promoCode || undefined
+        voucherCode: promoCode || undefined,
+        fbclid: fb.fbclid, fbc: fb.fbc, fbp: fb.fbp
       })
     });
     const data = await res.json();
@@ -757,6 +788,7 @@ async function payForNatal() {
   trackEvent('natal_buy_clicked', { value: 8.90, currency: 'EUR' });
   // Програматичен checkout — за да върне на правилния домейн (natal.davai.v.bg?natal=success)
   try {
+    const fb = getFbParams();
     const res = await fetch(CONFIG.workerUrl + '/create-checkout', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -766,7 +798,8 @@ async function payForNatal() {
         product: 'natal',
         successUrl: CONFIG.siteUrl + '?natal=success',
         cancelUrl: CONFIG.siteUrl,
-        voucherCode: promoCode || undefined
+        voucherCode: promoCode || undefined,
+        fbclid: fb.fbclid, fbc: fb.fbc, fbp: fb.fbp
       })
     });
     const data = await res.json();
@@ -870,8 +903,30 @@ async function fetchNatalAnalysis(planetData) {
   }
 }
 
-function goPersonalOdit() {
-  window.location.href = CONFIG.personalOditLink;
+async function goPersonalOdit() {
+  trackEvent('odit_upsell_clicked', { value: 14.60, currency: 'EUR' });
+  // Програматичен checkout — за пълна Meta attribution, fallback към Payment Link
+  try {
+    const fb = getFbParams();
+    const res = await fetch(CONFIG.workerUrl + '/create-checkout', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        amount: 1460,
+        productName: 'ДАВАЙ! Личен одит на живота',
+        product: 'odit',
+        successUrl: 'https://odit.davai.v.bg?payment=success&session_id={CHECKOUT_SESSION_ID}',
+        cancelUrl: CONFIG.siteUrl,
+        voucherCode: promoCode || undefined,
+        fbclid: fb.fbclid, fbc: fb.fbc, fbp: fb.fbp
+      })
+    });
+    const data = await res.json();
+    if (data.url) { window.location.href = data.url; return; }
+    throw new Error(data.error || 'no url');
+  } catch(e) {
+    window.location.href = CONFIG.personalOditLink; // краен fallback
+  }
 }
 
 function resetAll() {
