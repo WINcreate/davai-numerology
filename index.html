@@ -408,8 +408,16 @@ const LS_DATA = 'davai_num_data';
 const LS_NUMS = 'davai_num_numbers';
 const LS_REPORT = 'davai_num_report';
 const LS_CHECKOUT = 'davai_num_checkout';
+const LS_PROMO = 'davai_num_promo';
 
+// Промо кодът трябва да преживее success redirect-а (пълно презареждане на страницата,
+// URL-ът вече няма ?promo=) — иначе payForNatal()/goPersonalOdit() губят voucherCode
+// и потребителят стига до реално плащане въпреки 100% код.
 var promoCode = new URLSearchParams(window.location.search).get('promo') || null;
+try {
+  if (promoCode) sessionStorage.setItem(LS_PROMO, promoCode);
+  else promoCode = sessionStorage.getItem(LS_PROMO) || null;
+} catch(e) {}
 let numData = null;      // данните от формата
 let numbers = null;      // изчислените числа
 let gender = null;
