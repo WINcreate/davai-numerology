@@ -807,6 +807,7 @@ async function payForNatal() {
         successUrl: CONFIG.siteUrl + '?natal=success',
         cancelUrl: CONFIG.siteUrl,
         voucherCode: promoCode || undefined,
+        email: numData.email || undefined,
         fbclid: fb.fbclid, fbc: fb.fbc, fbp: fb.fbp
       })
     });
@@ -878,18 +879,10 @@ function renderNatal(data) {
 
 async function fetchNatalAnalysis(planetData) {
   const planets = (planetData.planets || []).filter(p => MAIN_PLANETS.includes(p.name));
-  const positions = planets.map(p => (PLANET_BG[p.name] || p.name) + ' в ' + (SIGN_BG[p.sign] || p.sign)).join(', ');
-  const asc = planetData.ascendant !== undefined ? ('Асцендент в ' + (SIGN_BG[degToSign(planetData.ascendant)] || '')) : '';
+  const planetsText = planets.map(p => (PLANET_BG[p.name] || p.name) + ' в ' + (SIGN_BG[p.sign] || p.sign)).join(', ');
+  const ascSign = planetData.ascendant !== undefined ? (SIGN_BG[degToSign(planetData.ascendant)] || '') : '';
+  const mcSign = planetData.midheaven !== undefined ? (SIGN_BG[degToSign(planetData.midheaven)] || '') : '';
   const theme = numData.natal_theme;
-
-  const prompt = 'Ти си опитен астролог. Говориш директно и топло, на "ти", на български. ' +
-    'Този човек вече получи нумерологичен одит. Сега допълни картината чрез наталната му карта.\n\n' +
-    'Планетарни позиции: ' + positions + (asc ? ('. ' + asc) : '') + '.\n' +
-    (theme ? ('Фокусирай анализа върху темата: ' + theme + '.\n') : '') +
-    '\nНапиши течен текст 250-350 думи: какви вродени сили и предизвикателства показва картата, ' +
-    'как допълва нумерологичния профил, и една конкретна насока. ' +
-    (theme ? 'Обвържи го ясно с темата.' : '') +
-    ' Без изброяване на планети механично. Без "може би". Само български език.' + GRAMMAR_RULES;
 
   const wrap = document.createElement('div');
   wrap.className = 'card';
@@ -897,15 +890,16 @@ async function fetchNatalAnalysis(planetData) {
   wrap.innerHTML = '<div class="loading-sub" style="text-align:center;">Разчитаме наталната карта...</div>';
   document.getElementById('natal-results').appendChild(wrap);
 
+  // /natal-analysis — единствен източник (Worker), чете кръстосан контекст по имейл сам
   try {
-    const res = await fetch(CONFIG.workerUrl + '/analyze', {
+    const res = await fetch(CONFIG.workerUrl + '/natal-analysis', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ prompt, max_tokens: 1500 })
+      body: JSON.stringify({ ascSign, mcSign, planetsText, theme: theme || undefined, email: numData.email || undefined })
     });
     const data = await res.json();
     if (data.error) throw new Error(data.error);
-    wrap.innerHTML = '<div class="num-school-title" style="color:var(--purple-text);">Разчитане на картата</div>' + formatReport(data.content);
+    wrap.innerHTML = '<div class="num-school-title" style="color:var(--purple-text);">Разчитане на картата</div>' + formatReport(data.report);
   } catch(e) {
     wrap.innerHTML = '<div style="color:var(--red-text);font-size:13px;">Грешка при анализа: ' + e.message + '</div>';
   }
