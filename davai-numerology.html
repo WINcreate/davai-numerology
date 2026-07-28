@@ -920,6 +920,7 @@ async function goPersonalOdit() {
         successUrl: 'https://odit.davai.v.bg?payment=success&session_id={CHECKOUT_SESSION_ID}',
         cancelUrl: CONFIG.siteUrl,
         voucherCode: promoCode || undefined,
+        email: numData.email || undefined,
         fbclid: fb.fbclid, fbc: fb.fbc, fbp: fb.fbp
       })
     });
