@@ -421,6 +421,7 @@ try {
 let numData = null;      // данните от формата
 let numbers = null;      // изчислените числа
 let gender = null;
+let natalReportText = null; // текстът на наталния анализ — за бутона „Изпрати на имейл"
 
 // ─── ANALYTICS (GA4 / gtag) ──────────────────────────────────────────────────
 // funnel_type разграничава двете фунии в общия GA4 property (един Measurement ID).
@@ -900,8 +901,41 @@ async function fetchNatalAnalysis(planetData) {
     const data = await res.json();
     if (data.error) throw new Error(data.error);
     wrap.innerHTML = '<div class="num-school-title" style="color:var(--purple-text);">Разчитане на картата</div>' + formatReport(data.report);
+    natalReportText = data.report;
+
+    const actionsDiv = document.createElement('div');
+    actionsDiv.className = 'card no-print';
+    actionsDiv.style.marginTop = '10px';
+    actionsDiv.innerHTML = '<div class="field-label" style="margin-bottom:10px;">Запази резултата:</div>' +
+      '<div style="display:flex;gap:10px;flex-wrap:wrap;">' +
+      '<button class="btn btn-ghost" onclick="trackEvent(\'pdf_download\', {}); window.print()">⬇ Свали като PDF</button>' +
+      '<button class="btn btn-ghost" id="natal-email-btn" onclick="sendNatalEmailQuick()">📧 Изпрати на имейл</button>' +
+      '</div><div id="natal-email-status" style="font-size:12px;margin-top:8px;"></div>';
+    document.getElementById('natal-results').appendChild(actionsDiv);
   } catch(e) {
     wrap.innerHTML = '<div style="color:var(--red-text);font-size:13px;">Грешка при анализа: ' + e.message + '</div>';
+  }
+}
+
+async function sendNatalEmailQuick() {
+  const btn = document.getElementById('natal-email-btn');
+  const status = document.getElementById('natal-email-status');
+  if (!numData.email || !natalReportText) return;
+  btn.disabled = true; btn.textContent = 'Изпращане...';
+  try {
+    const res = await fetch(CONFIG.workerUrl + '/send-natal-email', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: numData.email, report: natalReportText })
+    });
+    const data = await res.json();
+    btn.disabled = false; btn.textContent = '📧 Изпрати на имейл';
+    status.textContent = data.ok ? '✓ Изпратено на ' + numData.email : 'Грешка — опитай пак';
+    status.style.color = data.ok ? 'var(--green)' : 'var(--red-text)';
+  } catch(e) {
+    btn.disabled = false; btn.textContent = '📧 Изпрати на имейл';
+    status.textContent = 'Грешка — опитай пак';
+    status.style.color = 'var(--red-text)';
   }
 }
 
