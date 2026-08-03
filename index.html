@@ -385,7 +385,7 @@ const CONFIG = {
   workerUrl: 'https://davai-audit.kaloyan-5b3.workers.dev',
   siteUrl: 'https://natal.davai.v.bg',
   numerologyPrice: 1290,                                                     // €12.90 в центове
-  numerologyProduct: 'ДАВАЙ! Личен Нумерологичен Одит',
+  numerologyProduct: 'DAVAI! Personal Numerology Audit',
   numerologyPaymentLink: 'https://buy.stripe.com/bJeaEXgCQ0YCaxQ3KO7Vm03',  // fallback
   natalPaymentLink: 'https://buy.stripe.com/bJedR9fyMePs5dw2GK7Vm04',       // €8.90 add-on (numerology-специфичен redirect)
   personalOditLink: 'https://buy.stripe.com/00w4gz4U8ePs6hA6X07Vm02'        // €14.60 upsell
@@ -418,6 +418,14 @@ try {
   if (promoCode) sessionStorage.setItem(LS_PROMO, promoCode);
   else promoCode = sessionStorage.getItem(LS_PROMO) || null;
 } catch(e) {}
+// Email prefill от кросел линка (Личен одит → Нумерология, ?email=...)
+(function() {
+  var urlEmail = new URLSearchParams(window.location.search).get('email');
+  if (urlEmail) {
+    var el = document.getElementById('email');
+    if (el) el.value = urlEmail;
+  }
+})();
 let numData = null;      // данните от формата
 let numbers = null;      // изчислените числа
 let gender = null;
@@ -803,7 +811,7 @@ async function payForNatal() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         amount: 890,
-        productName: 'ДАВАЙ! Натална карта',
+        productName: 'DAVAI! Natal Chart',
         product: 'natal',
         successUrl: CONFIG.siteUrl + '?natal=success',
         cancelUrl: CONFIG.siteUrl,
@@ -949,7 +957,7 @@ async function goPersonalOdit() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         amount: 1460,
-        productName: 'ДАВАЙ! Личен одит на живота',
+        productName: 'DAVAI! Personal Life Audit',
         product: 'odit',
         successUrl: 'https://odit.davai.v.bg?payment=success&session_id={CHECKOUT_SESSION_ID}',
         cancelUrl: CONFIG.siteUrl,
