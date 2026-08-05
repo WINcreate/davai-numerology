@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+<!-- ДАВАЙ! НУМЕРОЛОГИЧЕН ОДИТ — деплойва се като index.html в WINcreate/davai-numerology (natal.davai.v.bg) -->
 <html lang="bg">
 <head>
 <meta charset="UTF-8">
@@ -363,7 +364,10 @@ src="https://www.facebook.com/tr?id=1275180257473388&ev=PageView&noscript=1"
           Нумерологичният Одит показва с каква природа си роден.
           ДАВАЙ! Личният Одит показва доколко животът ти днес е в съзвучие с нея.
         </div>
-        <button class="btn btn-primary" onclick="goPersonalOdit()" style="background:var(--gold-dark);">Продължи към Личния Одит →</button>
+        <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
+          <button class="btn btn-primary" onclick="goPersonalOdit()" style="background:var(--gold-dark);">Продължи към Личния Одит →</button>
+          <div style="color:var(--gold-dark);"><span class="price-inline">€14,60</span> · еднократно</div>
+        </div>
       </div>
 
       <div style="text-align:center;margin-top:2rem;font-size:14px;color:var(--text-secondary);line-height:1.8;">
@@ -397,10 +401,20 @@ function getCookie(name) {
   return match ? match.pop() : null;
 }
 function getFbParams() {
+  // Ако идваме от кросел (Одит→Нумерология), _fbc/_fbp на odit.davai.v.bg не се четат
+  // от този домейн — inbound стойностите (виж по-долу) взимат предимство пред
+  // локалните бисквитки, защото Pixel-ът на ТОЗИ домейн сетва собствено _fbp на всяко
+  // зареждане и иначе би прикрил пренесеното attribution от оригиналната реклама.
+  var lsFbclid = null, lsFbc = null, lsFbp = null;
+  try {
+    lsFbclid = sessionStorage.getItem(LS_INBOUND_FBCLID);
+    lsFbc = sessionStorage.getItem(LS_INBOUND_FBC);
+    lsFbp = sessionStorage.getItem(LS_INBOUND_FBP);
+  } catch(e) {}
   return {
-    fbclid: new URLSearchParams(window.location.search).get('fbclid') || null,
-    fbc: getCookie('_fbc'),
-    fbp: getCookie('_fbp')
+    fbclid: new URLSearchParams(window.location.search).get('fbclid') || lsFbclid || null,
+    fbc: lsFbc || getCookie('_fbc'),
+    fbp: lsFbp || getCookie('_fbp')
   };
 }
 
@@ -409,6 +423,11 @@ const LS_NUMS = 'davai_num_numbers';
 const LS_REPORT = 'davai_num_report';
 const LS_CHECKOUT = 'davai_num_checkout';
 const LS_PROMO = 'davai_num_promo';
+const LS_NATAL_DONE = 'davai_num_natal_done';
+const LS_ODIT_CLICKED = 'davai_num_odit_clicked';
+const LS_INBOUND_FBCLID = 'davai_num_inbound_fbclid';
+const LS_INBOUND_FBC = 'davai_num_inbound_fbc';
+const LS_INBOUND_FBP = 'davai_num_inbound_fbp';
 
 // Промо кодът трябва да преживее success redirect-а (пълно презареждане на страницата,
 // URL-ът вече няма ?promo=) — иначе payForNatal()/goPersonalOdit() губят voucherCode
@@ -425,6 +444,26 @@ try {
     var el = document.getElementById('email');
     if (el) el.value = urlEmail;
   }
+})();
+// Attribution от кросел линка (Личен одит → Нумерология, ?fbclid=/fbc=/fbp=) — пазим ги в
+// sessionStorage, защото реалният /create-checkout за нумерологията се случва по-късно
+// (след попълване на формата), не веднага при пристигане.
+(function() {
+  var p = new URLSearchParams(window.location.search);
+  var inFbclid = p.get('fbclid'), inFbc = p.get('fbc'), inFbp = p.get('fbp');
+  try {
+    if (inFbclid) sessionStorage.setItem(LS_INBOUND_FBCLID, inFbclid);
+    if (inFbc) sessionStorage.setItem(LS_INBOUND_FBC, inFbc);
+    if (inFbp) sessionStorage.setItem(LS_INBOUND_FBP, inFbp);
+  } catch(e) {}
+})();
+// При активен promo код бутонът не бива да показва твърдата €12.90 —
+// точната отстъпка се знае само сървърно (в /create-checkout), затова
+// тук просто махаме подвеждащата цена вместо да гадаем сума.
+(function() {
+  if (!promoCode) return;
+  var btn = document.getElementById('unlock-btn');
+  if (btn) btn.textContent = 'Отключи своя одит →';
 })();
 let numData = null;      // данните от формата
 let numbers = null;      // изчислените числа
@@ -727,6 +766,7 @@ function showReport(text, emailed) {
   if (emailed) trackEvent('email_sent', {});
   document.getElementById('free-gate').style.display = 'none';
   document.getElementById('report-part').style.display = 'block';
+  syncUpsellStates();
 }
 
 function formatReport(text) {
@@ -795,6 +835,22 @@ function hideNatalUpsell() {
   document.getElementById('natal-upsell').style.display = 'none';
 }
 
+// Показва upsell бутоните на резултатната страница коректно, ако продуктът вече
+// е купен в тази сесия (напр. при презареждане след завършена верига Нумерология→Натал→Одит) —
+// вместо да предлага повторна покупка.
+function syncUpsellStates() {
+  try {
+    if (sessionStorage.getItem(LS_NATAL_DONE) === '1') {
+      const el = document.getElementById('natal-upsell');
+      if (el) el.innerHTML = '<div class="upsell-title">Натална карта</div><div class="upsell-text">Вече включено ✓</div>';
+    }
+    if (sessionStorage.getItem(LS_ODIT_CLICKED) === '1') {
+      const el = document.getElementById('odit-upsell');
+      if (el) el.innerHTML = '<div class="upsell-title" style="color:var(--gold-dark);">Личен Одит</div><div class="upsell-text" style="color:var(--gold-dark);">Вече включено ✓</div>';
+    }
+  } catch(e) {}
+}
+
 async function payForNatal() {
   // Запази избраната тема
   const sel = document.getElementById('natal-theme').value;
@@ -856,6 +912,7 @@ async function fetchNatalChart() {
     const data = await res.json();
     if (data.error) throw new Error(data.error);
     document.getElementById('natal-form').style.display = 'none';
+    try { sessionStorage.setItem(LS_NATAL_DONE, '1'); } catch(e) {}
     renderNatal(data.planets);
     fetchNatalAnalysis(data.planets);
   } catch(e) {
@@ -949,6 +1006,7 @@ async function sendNatalEmailQuick() {
 
 async function goPersonalOdit() {
   trackEvent('odit_upsell_clicked', { value: 14.60, currency: 'EUR' });
+  try { sessionStorage.setItem(LS_ODIT_CLICKED, '1'); } catch(e) {}
   // Програматичен checkout — за пълна Meta attribution, fallback към Payment Link
   try {
     const fb = getFbParams();
