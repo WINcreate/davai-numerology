@@ -428,6 +428,11 @@ const LS_ODIT_CLICKED = 'davai_num_odit_clicked';
 const LS_INBOUND_FBCLID = 'davai_num_inbound_fbclid';
 const LS_INBOUND_FBC = 'davai_num_inbound_fbc';
 const LS_INBOUND_FBP = 'davai_num_inbound_fbp';
+// Session-safety за натал add-on плащане (€8.90): localStorage вместо sessionStorage,
+// за да преживее затворен таб/рестартиран браузър между плащане и попълване на формата.
+// Пази се само няколко дни, за да не показва объркващо остарял prefill при връщане седмици по-късно.
+const LS_NATAL_RESUME = 'davai_num_natal_resume';
+const NATAL_RESUME_MAX_AGE_MS = 3 * 24 * 60 * 60 * 1000;
 
 // Промо кодът трябва да преживее success redirect-а (пълно презареждане на страницата,
 // URL-ът вече няма ?promo=) — иначе payForNatal()/goPersonalOdit() губят voucherCode
@@ -805,7 +810,22 @@ function checkReturn() {
 
   if (p.get('natal') === 'success') {
     window.history.replaceState({}, document.title, window.location.pathname);
-    if (!loadState()) { showScreen('form'); return; }
+    if (!loadState()) {
+      // sessionStorage е празен (затворен таб между плащане и тук) — опитай localStorage резерва
+      let resumed = false;
+      try {
+        const raw = localStorage.getItem(LS_NATAL_RESUME);
+        const bundle = raw ? JSON.parse(raw) : null;
+        const fresh = bundle && (Date.now() - bundle.ts) < NATAL_RESUME_MAX_AGE_MS;
+        if (fresh && bundle.numData) {
+          numData = bundle.numData;
+          sessionStorage.setItem(LS_DATA, JSON.stringify(numData));
+          resumed = true;
+        }
+      } catch(e) {}
+      if (!resumed) { localStorage.removeItem(LS_NATAL_RESUME); showScreen('form'); return; }
+    }
+    localStorage.removeItem(LS_NATAL_RESUME);
     const report = sessionStorage.getItem(LS_REPORT);
     showScreen('result');
     renderFree(true);
@@ -858,6 +878,9 @@ async function payForNatal() {
   if (sel === '__free__') theme = document.getElementById('natal-theme-free').value.trim() || null;
   numData.natal_theme = theme || null;
   saveState();
+  try {
+    localStorage.setItem(LS_NATAL_RESUME, JSON.stringify({ numData, ts: Date.now() }));
+  } catch(e) {}
   trackEvent('natal_buy_clicked', { value: 8.90, currency: 'EUR' });
   // Програматичен checkout — за да върне на правилния домейн (natal.davai.v.bg?natal=success)
   try {
