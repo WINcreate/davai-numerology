@@ -795,7 +795,7 @@ function formatReport(text) {
 }
 
 // ─── ПРОВЕРКА ПРИ ВРЪЩАНЕ ОТ ПЛАЩАНЕ ─────────────────────────────────────────
-function checkReturn() {
+async function checkReturn() {
   const p = new URLSearchParams(window.location.search);
 
   if (p.get('numerology') === 'success') {
@@ -823,7 +823,26 @@ function checkReturn() {
           resumed = true;
         }
       } catch(e) {}
-      if (!resumed) { localStorage.removeItem(LS_NATAL_RESUME); showScreen('form'); return; }
+      if (!resumed) {
+        localStorage.removeItem(LS_NATAL_RESUME);
+        // localStorage също няма нищо (различно устройство/изчистен браузър) — опитай KV
+        // резерва по session_id. Няма birth данни в него, затова не може да отключи формата,
+        // само потвърждава плащането честно вместо тихо да върне на празната форма.
+        const sid = p.get('session_id');
+        if (sid) {
+          try {
+            const pres = await fetch(CONFIG.workerUrl + '/resume-pending', {
+              method: 'POST', headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ session_id: sid })
+            });
+            const pdata = await pres.json();
+            if (pdata.found && pdata.product === 'natal') {
+              alert('Плащането за наталната карта е потвърдено (' + (pdata.email || '') + '), но не можахме да възстановим данните ти на това устройство. Пиши ни с този номер за помощ: ' + sid);
+            }
+          } catch(e) {}
+        }
+        showScreen('form'); return;
+      }
     }
     localStorage.removeItem(LS_NATAL_RESUME);
     const report = sessionStorage.getItem(LS_REPORT);
@@ -892,7 +911,7 @@ async function payForNatal() {
         amount: 890,
         productName: 'DAVAI! Natal Chart',
         product: 'natal',
-        successUrl: CONFIG.siteUrl + '?natal=success',
+        successUrl: CONFIG.siteUrl + '?natal=success&session_id={CHECKOUT_SESSION_ID}',
         cancelUrl: CONFIG.siteUrl,
         voucherCode: promoCode || undefined,
         email: numData.email || undefined,
