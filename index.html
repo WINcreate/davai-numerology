@@ -106,6 +106,8 @@ src="https://www.facebook.com/tr?id=1275180257473388&ev=PageView&noscript=1"
   .personal-year-card .num-val { font-size: 2.6rem; }
 
   .match-msg { background: var(--amber); color: var(--amber-text); border-radius: var(--radius); padding: 16px 20px; font-size: 14px; line-height: 1.6; margin-bottom: 14px; }
+  .price-strike { position: relative; display: inline-block; font-size: 17px; color: var(--text-tertiary); font-weight: 500; }
+  .price-strike::after { content: ""; position: absolute; left: -3px; right: -3px; top: 52%; height: 2px; background: var(--red-text); transform: rotate(-10deg); border-radius: 2px; }
   .gift-text { font-size: 14px; color: var(--text-secondary); line-height: 1.8; font-style: italic; text-align: center; margin: 20px 4px; }
 
   /* ── ПОЛЕ С ВЪПРОСИ ── */
@@ -432,7 +434,28 @@ const LS_INBOUND_FBP = 'davai_num_inbound_fbp';
 // за да преживее затворен таб/рестартиран браузър между плащане и попълване на формата.
 // Пази се само няколко дни, за да не показва объркващо остарял prefill при връщане седмици по-късно.
 const LS_NATAL_RESUME = 'davai_num_natal_resume';
+const LS_NUMEROLOGY_RESUME = 'davai_num_purchase_resume';
 const NATAL_RESUME_MAX_AGE_MS = 3 * 24 * 60 * 60 * 1000;
+
+// alert() може тихо да бъде потиснат от браузъра, когато гърми автоматично при
+// зареждане на страница без предходен потребителски жест (потвърдено наблюдение,
+// не теория) — затова резервните съобщения за плащане минават през видим in-page
+// банер, не native dialog.
+function showResumeNotice(message) {
+  try {
+    let el = document.getElementById('resume-notice');
+    if (!el) {
+      el = document.createElement('div');
+      el.id = 'resume-notice';
+      el.className = 'match-msg';
+      el.style.margin = '16px auto';
+      el.style.maxWidth = '600px';
+      document.body.insertBefore(el, document.body.firstChild);
+    }
+    el.textContent = message;
+    el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  } catch(e) {}
+}
 
 // Промо кодът трябва да преживее success redirect-а (пълно презареждане на страницата,
 // URL-ът вече няма ?promo=) — иначе payForNatal()/goPersonalOdit() губят voucherCode
@@ -462,13 +485,18 @@ try {
     if (inFbp) sessionStorage.setItem(LS_INBOUND_FBP, inFbp);
   } catch(e) {}
 })();
-// При активен promo код бутонът не бива да показва твърдата €12.90 —
-// точната отстъпка се знае само сървърно (в /create-checkout), затова
-// тук просто махаме подвеждащата цена вместо да гадаем сума.
+// Базовата €12.90 в статичния HTML остава за без-промо случая (консистентно с
+// останалите CTA бутони в продукта — натал €8.90, одит €14.60 — винаги показват цена).
+// DAVAI-AUDIT25 е единствената реална, известна отстъпка на тази стъпка (кросел от
+// Одита, -25%) — показваме точната намалена цена за нея. За друг/непознат promo код
+// НЕ гадаем произволен процент — базовата цена остава коректна и видима.
 (function() {
   if (!promoCode) return;
   var btn = document.getElementById('unlock-btn');
-  if (btn) btn.textContent = 'Отключи своя одит →';
+  if (!btn) return;
+  if (promoCode.toUpperCase() === 'DAVAI-AUDIT25') {
+    btn.innerHTML = 'Отключи своя одит — <span class="price-strike">€12,90</span> €9,68';
+  }
 })();
 let numData = null;      // данните от формата
 let numbers = null;      // изчислените числа
@@ -698,6 +726,9 @@ async function startNumerologyCheckout() {
   trackEvent('buy_clicked', { value: 12.90, currency: 'EUR' });
   numData.user_question = q || null;
   saveState();
+  try {
+    localStorage.setItem(LS_NUMEROLOGY_RESUME, JSON.stringify({ numData, ts: Date.now() }));
+  } catch(e) {}
   sessionStorage.setItem(LS_CHECKOUT, '1');
 
   const err = document.getElementById('checkout-error');
@@ -801,7 +832,41 @@ async function checkReturn() {
   if (p.get('numerology') === 'success') {
     const sid = p.get('session_id') || null;
     window.history.replaceState({}, document.title, window.location.pathname);
-    if (!loadState()) { showScreen('form'); return; }
+    if (!loadState()) {
+      // sessionStorage е празен (затворен таб между плащане и тук) — опитай localStorage резерва
+      let resumed = false;
+      try {
+        const raw = localStorage.getItem(LS_NUMEROLOGY_RESUME);
+        const bundle = raw ? JSON.parse(raw) : null;
+        const fresh = bundle && (Date.now() - bundle.ts) < NATAL_RESUME_MAX_AGE_MS;
+        if (fresh && bundle.numData) {
+          numData = bundle.numData;
+          sessionStorage.setItem(LS_DATA, JSON.stringify(numData));
+          resumed = true;
+        }
+      } catch(e) {}
+      if (!resumed) {
+        localStorage.removeItem(LS_NUMEROLOGY_RESUME);
+        // localStorage също няма нищо (различно устройство/изчистен браузър) — опитай KV
+        // резерва по session_id. Няма birth данни в него, затова не може да генерира доклад,
+        // само потвърждава плащането честно вместо тихо да върне на празната форма.
+        if (sid) {
+          try {
+            const pres = await fetch(CONFIG.workerUrl + '/resume-pending', {
+              method: 'POST', headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ session_id: sid })
+            });
+            const pdata = await pres.json();
+            if (pdata.found && pdata.product === 'numerology') {
+              if (pdata.email) { const ef = document.getElementById('email'); if (ef) ef.value = pdata.email; }
+              showResumeNotice('Плащането за нумерологичния одит е потвърдено (' + (pdata.email || '') + '), но не можахме да възстановим данните ти на това устройство. Пиши ни с този номер за помощ: ' + sid);
+            }
+          } catch(e) {}
+        }
+        showScreen('form'); return;
+      }
+    }
+    localStorage.removeItem(LS_NUMEROLOGY_RESUME);
     const allowed = sid || sessionStorage.getItem(LS_CHECKOUT) === '1';
     if (allowed) { generateReport(sid); }
     else { showScreen('result'); renderFree(false); }
@@ -837,7 +902,7 @@ async function checkReturn() {
             });
             const pdata = await pres.json();
             if (pdata.found && pdata.product === 'natal') {
-              alert('Плащането за наталната карта е потвърдено (' + (pdata.email || '') + '), но не можахме да възстановим данните ти на това устройство. Пиши ни с този номер за помощ: ' + sid);
+              showResumeNotice('Плащането за наталната карта е потвърдено (' + (pdata.email || '') + '), но не можахме да възстановим данните ти на това устройство. Пиши ни с този номер за помощ: ' + sid);
             }
           } catch(e) {}
         }
