@@ -437,6 +437,25 @@ const LS_NATAL_RESUME = 'davai_num_natal_resume';
 const LS_NUMEROLOGY_RESUME = 'davai_num_purchase_resume';
 const NATAL_RESUME_MAX_AGE_MS = 3 * 24 * 60 * 60 * 1000;
 
+// ─── НОРМАЛИЗАЦИЯ + ВАЛИДАЦИЯ НА ИМЕЙЛ ───────────────────────────────────────
+// Имейлът става част от KV ключ на сървъра (summary:*), затова "<user@x.bg>" — типичен
+// резултат от копиране на mailto/markdown линк — създава ОТДЕЛЕН запис за същия човек и
+// къса кръстосания анализ. Старият regex [^@\s] пропускаше скобите тихо, защото
+// забраняваше само "@" и интервал. Чистим стойността преди валидация, вместо да я
+// отхвърляме — потребителят не е сгрешил, просто е поставил линк вместо адрес.
+// Сървърът има огледална normalizeEmail() — тази тук е за да не стига дотам изобщо.
+function normalizeEmail(v) {
+  var e = String(v || '').trim();
+  for (var i = 0; i < 3; i++) {           // цикъл заради "<mailto:user@x.bg>"
+    var before = e;
+    e = e.replace(/^<+/, '').replace(/>+$/, '').trim();
+    e = e.replace(/^mailto:/i, '').trim();
+    if (e === before) break;
+  }
+  return e.toLowerCase();
+}
+var EMAIL_RE = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/;
+
 // alert() може тихо да бъде потиснат от браузъра, когато гърми автоматично при
 // зареждане на страница без предходен потребителски жест (потвърдено наблюдение,
 // не теория) — затова резервните съобщения за плащане минават през видим in-page
@@ -593,7 +612,7 @@ async function submitForm() {
     gender: gender,
     birth_hour: noTime ? null : (document.getElementById('birth-hour').value === '' ? null : parseInt(document.getElementById('birth-hour').value)),
     birth_minute: noTime ? null : (document.getElementById('birth-minute').value === '' ? 0 : parseInt(document.getElementById('birth-minute').value)),
-    email: document.getElementById('email').value.trim(),
+    email: normalizeEmail(document.getElementById('email').value),
     phone: document.getElementById('phone').value.trim(),
     user_question: null,
     natal_theme: null
@@ -608,7 +627,7 @@ async function submitForm() {
   if (!(data.birth_month >= 1 && data.birth_month <= 12)) problems.push('месец');
   if (!(data.birth_year >= 1900 && data.birth_year <= 2010)) problems.push('година');
   if (!gender) problems.push('пол');
-  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(data.email)) problems.push('валиден имейл');
+  if (!EMAIL_RE.test(data.email)) problems.push('валиден имейл');
   if (!data.phone) problems.push('телефон');
   if (!noTime && data.birth_hour === null) problems.push('час на раждане (или отметни „Не знам")');
 
