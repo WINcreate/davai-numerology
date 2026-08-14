@@ -815,8 +815,11 @@ async function generateReport(sessionId) {
     const data = await res.json();
     if (data.error) throw new Error(data.error);
 
+    // Потвърден успех от бекенда — чак сега освобождаваме резервите и чистим URL-а.
     sessionStorage.setItem(LS_REPORT, data.report);
     sessionStorage.removeItem(LS_CHECKOUT);
+    localStorage.removeItem(LS_NUMEROLOGY_RESUME);
+    clearReturnUrl();
 
     trackEvent('purchase', { value: 12.90, currency: 'EUR' });
     showScreen('result');
@@ -826,9 +829,37 @@ async function generateReport(sessionId) {
   } catch(e) {
     showScreen('result');
     renderFree(false);
+    // Слой В.2 — съобщението НЕ твърди нито "платено", нито "неплатено": в момента на
+    // грешката не знаем кое от двете е. Инцидентът от 13.08 доказа защо това е важно —
+    // парите бяха взети, а старият текст казваше "Плащането не е потвърдено" и съветваше
+    // презареждане, което тогава губеше session_id-то окончателно.
+    // Бутонът вика generateReport() наново със същия session_id, който вече оцелява (В.1).
     const err = document.getElementById('checkout-error');
-    err.textContent = 'Грешка при генериране на доклада: ' + e.message + '. Презареди страницата, за да опиташ пак.';
+    const esc = function(s) {
+      return String(s || '').replace(/[&<>"]/g, function(c) {
+        return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c];
+      });
+    };
+    const ref = sessionId ? ' с този номер: <code>' + esc(sessionId) + '</code>' : '';
+    err.innerHTML =
+      '<div>Не успяхме да потвърдим плащането в момента. Ако е било направено, парите ти са в безопасност — нищо не се губи. ' +
+      'Натисни „Опитай пак" след няколко секунди; повторно плащане няма да се извърши. ' +
+      'Ако и тогава не стане, пиши ни на <a href="mailto:wecare@davai.v.bg" style="color:inherit;">wecare@davai.v.bg</a>' + ref + '</div>' +
+      '<button type="button" class="btn btn-primary" id="retry-report-btn" style="margin-top:12px;">Опитай пак</button>';
+    // Кехлибарен, не червен — това не е отказ, а изчакване; червеното противоречи на
+    // изречението "парите ти са в безопасност".
+    err.style.background = 'var(--amber)';
+    err.style.color = 'var(--amber-text)';
     err.style.display = 'block';
+    const retryBtn = document.getElementById('retry-report-btn');
+    if (retryBtn) {
+      retryBtn.onclick = function() {
+        retryBtn.disabled = true;
+        retryBtn.textContent = 'Опитваме пак...';
+        err.style.display = 'none';
+        generateReport(sessionId);
+      };
+    }
   }
 }
 
@@ -866,12 +897,19 @@ function formatReport(text) {
 }
 
 // ─── ПРОВЕРКА ПРИ ВРЪЩАНЕ ОТ ПЛАЩАНЕ ─────────────────────────────────────────
+// Слой В.1 — URL-ът с ?numerology=success&session_id=... е ЕДИНСТВЕНОТО доказателство
+// за право на достъп след връщане от Stripe. Чисти се чак след потвърден успех.
+// Преди: replaceState() гърмеше веднага, а при неуспех съобщението съветваше презареждане,
+// което вече нямаше какво да презареди — точно това остави клиентката от 13.08 без продукт.
+function clearReturnUrl() {
+  try { window.history.replaceState({}, document.title, window.location.pathname); } catch(e) {}
+}
+
 async function checkReturn() {
   const p = new URLSearchParams(window.location.search);
 
   if (p.get('numerology') === 'success') {
     const sid = p.get('session_id') || null;
-    window.history.replaceState({}, document.title, window.location.pathname);
     if (!loadState()) {
       // sessionStorage е празен (затворен таб между плащане и тук) — опитай localStorage резерва
       let resumed = false;
@@ -906,15 +944,15 @@ async function checkReturn() {
         showScreen('form'); return;
       }
     }
-    localStorage.removeItem(LS_NUMEROLOGY_RESUME);
+    // Резервните данни НЕ се трият тук — само след потвърден успех в generateReport().
     const allowed = sid || sessionStorage.getItem(LS_CHECKOUT) === '1';
     if (allowed) { generateReport(sid); }
-    else { showScreen('result'); renderFree(false); }
+    else { clearReturnUrl(); showScreen('result'); renderFree(false); }
     return;
   }
 
   if (p.get('natal') === 'success') {
-    window.history.replaceState({}, document.title, window.location.pathname);
+    // Слой В.1 — URL-ът се чисти чак когато формата е реално отключена (виж края на клона).
     if (!loadState()) {
       // sessionStorage е празен (затворен таб между плащане и тук) — опитай localStorage резерва
       let resumed = false;
@@ -950,6 +988,7 @@ async function checkReturn() {
       }
     }
     localStorage.removeItem(LS_NATAL_RESUME);
+    clearReturnUrl();
     const report = sessionStorage.getItem(LS_REPORT);
     showScreen('result');
     renderFree(true);
