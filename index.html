@@ -458,6 +458,18 @@ const LS_NATAL_RESUME = 'davai_num_natal_resume';
 const LS_NUMEROLOGY_RESUME = 'davai_num_purchase_resume';
 const NATAL_RESUME_MAX_AGE_MS = 3 * 24 * 60 * 60 * 1000;
 
+// session_id-то от връщането след плащане трябва да преживее до момента, в който човекът
+// попълни град и часова зона и натисне "Изчисли натална карта" — /natal-analysis вече го
+// изисква безусловно. sessionStorage, за да оцелее и презареждане на страницата.
+const LS_NATAL_SID = 'davai_natal_sid';
+function rememberNatalSessionId(sid) {
+  if (!sid) return;
+  try { sessionStorage.setItem(LS_NATAL_SID, sid); } catch(e) {}
+}
+function getNatalSessionId() {
+  try { return sessionStorage.getItem(LS_NATAL_SID) || null; } catch(e) { return null; }
+}
+
 // ─── НОРМАЛИЗАЦИЯ + ВАЛИДАЦИЯ НА ИМЕЙЛ ───────────────────────────────────────
 // Имейлът става част от KV ключ на сървъра (summary:*), затова "<user@x.bg>" — типичен
 // резултат от копиране на mailto/markdown линк — създава ОТДЕЛЕН запис за същия човек и
@@ -952,6 +964,10 @@ async function checkReturn() {
   }
 
   if (p.get('natal') === 'success') {
+    // /natal-analysis вече изисква session_id безусловно, а той идва само тук — в URL-а
+    // след плащане (или bypass_ идентификатора при 100% ваучер). Формата за град/часова
+    // зона се попълва по-късно, затова стойността трябва да преживее до самото извикване.
+    rememberNatalSessionId(p.get('session_id'));
     // Слой В.1 — URL-ът се чисти чак когато формата е реално отключена (виж края на клона).
     if (!loadState()) {
       // sessionStorage е празен (затворен таб между плащане и тук) — опитай localStorage резерва
@@ -1147,7 +1163,7 @@ async function fetchNatalAnalysis(planetData) {
     const res = await fetch(CONFIG.workerUrl + '/natal-analysis', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ascSign, mcSign, planetsText, theme: theme || undefined, email: numData.email || undefined })
+      body: JSON.stringify({ ascSign, mcSign, planetsText, theme: theme || undefined, email: numData.email || undefined, session_id: getNatalSessionId() || undefined })
     });
     const data = await res.json();
     if (data.error) throw new Error(data.error);
@@ -1163,8 +1179,24 @@ async function fetchNatalAnalysis(planetData) {
       '<button class="btn btn-ghost" id="natal-email-btn" onclick="sendNatalEmailQuick()">📧 Изпрати на имейл</button>' +
       '</div><div id="natal-email-status" style="font-size:12px;margin-top:8px;"></div>';
     document.getElementById('natal-results').appendChild(actionsDiv);
+    // /natal-analysis вече праща имейла автоматично. Отразяваме го веднага, за да не
+    // праща човек втори път по погрешка — но бутонът остава активен (може да иска друг адрес).
+    if (data.emailed) markNatalEmailSent(numData.email);
   } catch(e) {
     wrap.innerHTML = '<div style="color:var(--red-text);font-size:13px;">Грешка при анализа: ' + e.message + '</div>';
+  }
+}
+
+// Същата защита като при Одита: не изключваме бутона, само казваме къде е отишло.
+let natalEmailSent = false;
+function markNatalEmailSent(toEmail) {
+  natalEmailSent = true;
+  const btn = document.getElementById('natal-email-btn');
+  const status = document.getElementById('natal-email-status');
+  if (btn) btn.textContent = '📧 Изпрати пак';
+  if (status) {
+    status.textContent = '✓ Изпратено на ' + (toEmail || 'твоя имейл');
+    status.style.color = 'var(--green)';
   }
 }
 
@@ -1172,6 +1204,7 @@ async function sendNatalEmailQuick() {
   const btn = document.getElementById('natal-email-btn');
   const status = document.getElementById('natal-email-status');
   if (!numData.email || !natalReportText) return;
+  const label = natalEmailSent ? '📧 Изпрати пак' : '📧 Изпрати на имейл';
   btn.disabled = true; btn.textContent = 'Изпращане...';
   try {
     const res = await fetch(CONFIG.workerUrl + '/send-natal-email', {
@@ -1180,11 +1213,16 @@ async function sendNatalEmailQuick() {
       body: JSON.stringify({ email: numData.email, report: natalReportText })
     });
     const data = await res.json();
-    btn.disabled = false; btn.textContent = '📧 Изпрати на имейл';
-    status.textContent = data.ok ? '✓ Изпратено на ' + numData.email : 'Грешка — опитай пак';
-    status.style.color = data.ok ? 'var(--green)' : 'var(--red-text)';
+    btn.disabled = false;
+    if (data.ok) {
+      markNatalEmailSent(numData.email);
+    } else {
+      btn.textContent = label;
+      status.textContent = 'Грешка — опитай пак';
+      status.style.color = 'var(--red-text)';
+    }
   } catch(e) {
-    btn.disabled = false; btn.textContent = '📧 Изпрати на имейл';
+    btn.disabled = false; btn.textContent = label;
     status.textContent = 'Грешка — опитай пак';
     status.style.color = 'var(--red-text)';
   }
