@@ -1197,7 +1197,9 @@ async function fetchNatalAnalysis(planetData) {
     const res = await fetch(CONFIG.workerUrl + '/natal-analysis', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ascSign, mcSign, planetsText, theme: theme || undefined, email: numData.email || undefined, session_id: getNatalSessionId() || undefined })
+      // gender вече е събран в нумерологичната форма (задължително поле) — предаваме го,
+      // за да не гадае наталният анализ рода на читателя от чужди имена в контекста.
+      body: JSON.stringify({ ascSign, mcSign, planetsText, theme: theme || undefined, email: numData.email || undefined, session_id: getNatalSessionId() || undefined, gender: numData.gender || undefined })
     });
     const data = await res.json();
     if (data.error) throw new Error(data.error);
