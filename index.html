@@ -342,8 +342,8 @@ src="https://www.facebook.com/tr?id=1275180257473388&ev=PageView&noscript=1"
         </select>
         <input type="text" class="input-field" id="natal-theme-free" placeholder="Опиши темата..." style="display:none;">
         <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
-          <button class="btn btn-primary" onclick="payForNatal()">Добави Натална карта →</button>
-          <div style="color:var(--green-dark);"><span class="price-inline">€8,90</span> · еднократно</div>
+          <button class="btn btn-primary" id="natal-buy-btn" onclick="payForNatal()">Добави Натална карта →</button>
+          <div id="natal-price-tag" style="color:var(--green-dark);"><span class="price-inline">€8,90</span> · еднократно</div>
           <a class="skip-link" onclick="hideNatalUpsell()">Пропусни →</a>
         </div>
       </div>
@@ -779,6 +779,37 @@ function renderFree(paid) {
   // Заключена / отключена част
   document.getElementById('free-gate').style.display = paid ? 'none' : 'block';
   document.getElementById('report-part').style.display = paid ? 'block' : 'none';
+  applyBundleGateTexts();
+}
+
+// При потвърден пакет двата gateway бутона вече не продават — само водят напред.
+// Логиката за директно генериране без плащане е поправена отделно; тук е само текстът.
+// Идемпотентна — може да се вика при всяко пре-рендиране.
+function applyBundleGateTexts() {
+  if (!bundleSessionId()) return;
+
+  // ── Нумерологичен free-gate ──
+  const btn = document.getElementById('unlock-btn');
+  if (btn) {
+    btn.innerHTML = 'ПРОДЪЛЖИ КЪМ НУМЕРОЛОГИЯТА →';
+    const wrap = btn.parentNode;
+    if (wrap && !document.getElementById('bundle-gate-status')) {
+      const s = document.createElement('div');
+      s.id = 'bundle-gate-status';
+      s.style.cssText = 'font-size:15px;color:var(--green-dark);font-weight:500;margin-bottom:12px;text-align:center;';
+      s.textContent = '✓ Включена в Пълния пакет';
+      wrap.insertBefore(s, btn);
+    }
+  }
+
+  // ── Натален upsell: цената отстъпва на статуса ──
+  const nbtn = document.getElementById('natal-buy-btn');
+  if (nbtn) nbtn.innerHTML = 'ПРОДЪЛЖИ КЪМ НАТАЛНАТА КАРТА →';
+  const ntag = document.getElementById('natal-price-tag');
+  if (ntag) {
+    ntag.style.fontWeight = '500';
+    ntag.innerHTML = '✓ Включена в Пълния пакет';
+  }
 }
 
 function matchMessage(n) {
@@ -922,6 +953,7 @@ function showReport(text, emailed) {
   document.getElementById('free-gate').style.display = 'none';
   document.getElementById('report-part').style.display = 'block';
   syncUpsellStates();
+  applyBundleGateTexts();   // наталният upsell става видим чак тук
 }
 
 function formatReport(text) {
@@ -1133,12 +1165,12 @@ async function syncUpsellStates() {
   } catch(e) { return; }
   if (!ent || !Array.isArray(ent.products)) return;
   if (ent.products.indexOf('odit') === -1) return;
-  const generated = Array.isArray(ent.completed) && ent.completed.indexOf('odit') !== -1;
+  // Скрива се ИЗЦЯЛО, не се показва с нов текст. Това е cross-sell елемент за продукт,
+  // който човекът вече притежава — а при пакет следващата стъпка към Одита я дава
+  // картата в края на наталния анализ (showBundleReturnToOdit). Два бутона към едно
+  // и също нещо на един екран объркват повече, отколкото информират.
   const el = document.getElementById('odit-upsell');
-  if (el) el.innerHTML =
-    '<div class="upsell-title" style="color:var(--gold-dark);">Личен Одит</div>' +
-    '<div class="upsell-text" style="color:var(--gold-dark);">' +
-    (generated ? 'Готов ✓ — изпратен е на имейла ти.' : 'Включен в пакета ✓') + '</div>';
+  if (el) el.style.display = 'none';
 }
 
 async function payForNatal() {
