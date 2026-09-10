@@ -525,6 +525,29 @@ try {
     if (el) el.value = urlEmail;
   }
 })();
+
+// ── Вход от платен пакет (Одит → Нумерология) ────────────────────────────────
+// Одитският домейн праща ?bundle=1&session_id=... след платен пакет. Тук НЯМА повторно
+// плащане — правото се проверява сървърно през hasEntitlement(sid, продукт), точно както
+// при единична покупка. session_id-то е единственото, което пресича домейните, затова
+// веднага влиза в sessionStorage (LS_NATAL_SID вече съществува за същата цел).
+const LS_BUNDLE_MODE = 'davai_num_bundle';
+(function() {
+  var p = new URLSearchParams(window.location.search);
+  if (p.get('bundle') !== '1') return;
+  var sid = p.get('session_id');
+  if (!sid) return;
+  rememberNatalSessionId(sid);
+  try { sessionStorage.setItem(LS_BUNDLE_MODE, '1'); } catch(e) {}
+})();
+
+// Връща session_id-то на пакета, ако сме в bundle режим — иначе null.
+function bundleSessionId() {
+  try {
+    if (sessionStorage.getItem(LS_BUNDLE_MODE) !== '1') return null;
+    return getNatalSessionId();
+  } catch(e) { return null; }
+}
 // Attribution от кросел линка (Личен одит → Нумерология, ?fbclid=/fbc=/fbp=) — пазим ги в
 // sessionStorage, защото реалният /create-checkout за нумерологията се случва по-късно
 // (след попълване на формата), не веднага при пристигане.
@@ -782,6 +805,16 @@ async function startNumerologyCheckout() {
     localStorage.setItem(LS_NUMEROLOGY_RESUME, JSON.stringify({ numData, ts: Date.now() }));
   } catch(e) {}
   sessionStorage.setItem(LS_CHECKOUT, '1');
+
+  // ── Пакет: правото е платено, няма втори checkout ──
+  // generateReport() подава session_id-то на /numerology, а там hasEntitlement()
+  // проверява сървърно дали този пакет включва нумерологията. Никакво доверие в клиента.
+  const bSid = bundleSessionId();
+  if (bSid) {
+    trackEvent('bundle_numerology_start', {});
+    generateReport(bSid);
+    return;
+  }
 
   const err = document.getElementById('checkout-error');
   err.style.display = 'none';
@@ -1070,17 +1103,42 @@ function hideNatalUpsell() {
 // Показва upsell бутоните на резултатната страница коректно, ако продуктът вече
 // е купен в тази сесия (напр. при презареждане след завършена верига Нумерология→Натал→Одит) —
 // вместо да предлага повторна покупка.
-function syncUpsellStates() {
+async function syncUpsellStates() {
+  // Наталната карта: локалният флаг бележи РЕАЛНО изчисление в тази сесия — валиден сигнал.
   try {
     if (sessionStorage.getItem(LS_NATAL_DONE) === '1') {
       const el = document.getElementById('natal-upsell');
       if (el) el.innerHTML = '<div class="upsell-title">Натална карта</div><div class="upsell-text">Вече включено ✓</div>';
     }
-    if (sessionStorage.getItem(LS_ODIT_CLICKED) === '1') {
-      const el = document.getElementById('odit-upsell');
-      if (el) el.innerHTML = '<div class="upsell-title" style="color:var(--gold-dark);">Личен Одит</div><div class="upsell-text" style="color:var(--gold-dark);">Вече включено ✓</div>';
-    }
   } catch(e) {}
+
+  // Одитът: по РЕАЛНО притежание, не по клик.
+  // Известният дефект, който това заменя: LS_ODIT_CLICKED се вдигаше при натискане на
+  // бутона, не при покупка — човек, който кликне и се откаже на Stripe, виждаше
+  // "Вече включено ✓" за продукт, който не притежава, и губеше офертата до края на сесията.
+  // Записът на флага остава (полезен за поведенческа статистика), но вече не крие оферти.
+  let mail = '';
+  try {
+    mail = (numData && numData.email) || (document.getElementById('email') || {}).value || '';
+  } catch(e) {}
+  if (!mail) return;
+  let ent = null;
+  try {
+    const r = await fetch(CONFIG.workerUrl + '/entitlement', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: mail })
+    });
+    ent = await r.json();
+  } catch(e) { return; }
+  if (!ent || !Array.isArray(ent.products)) return;
+  if (ent.products.indexOf('odit') === -1) return;
+  const generated = Array.isArray(ent.completed) && ent.completed.indexOf('odit') !== -1;
+  const el = document.getElementById('odit-upsell');
+  if (el) el.innerHTML =
+    '<div class="upsell-title" style="color:var(--gold-dark);">Личен Одит</div>' +
+    '<div class="upsell-text" style="color:var(--gold-dark);">' +
+    (generated ? 'Готов ✓ — изпратен е на имейла ти.' : 'Включен в пакета ✓') + '</div>';
 }
 
 async function payForNatal() {
@@ -1093,6 +1151,16 @@ async function payForNatal() {
   try {
     localStorage.setItem(LS_NATAL_RESUME, JSON.stringify({ numData, ts: Date.now() }));
   } catch(e) {}
+  // ── Пакет: наталната карта също е платена — отключваме формата без checkout ──
+  if (bundleSessionId()) {
+    trackEvent('bundle_natal_start', {});
+    const up = document.getElementById('natal-upsell');
+    const nf = document.getElementById('natal-form');
+    if (up) up.style.display = 'none';
+    if (nf) { nf.style.display = 'block'; nf.scrollIntoView({ behavior: 'smooth' }); }
+    return;
+  }
+
   trackEvent('natal_buy_clicked', { value: 8.90, currency: 'EUR' });
   // Програматичен checkout — за да върне на правилния домейн (natal.davai.v.bg?natal=success)
   try {
@@ -1218,9 +1286,41 @@ async function fetchNatalAnalysis(planetData) {
     // /natal-analysis вече праща имейла автоматично. Отразяваме го веднага, за да не
     // праща човек втори път по погрешка — но бутонът остава активен (може да иска друг адрес).
     if (data.emailed) markNatalEmailSent(numData.email);
+
+    // ── Пакет: остава Одитът, на другия домейн ──
+    // Той се генерира ПОСЛЕДЕН нарочно: единствен той има блока "ТРИТЕ СИСТЕМИ", а
+    // сега вече ще намери и нумерологичното, и наталното обобщение по имейл.
+    const bRet = bundleSessionId();
+    if (bRet) showBundleReturnToOdit(bRet);
   } catch(e) {
     wrap.innerHTML = '<div style="color:var(--red-text);font-size:13px;">Грешка при анализа: ' + e.message + '</div>';
   }
+}
+
+// Механизмът и мястото за обратния преход. ТЕКСТЪТ Е ВРЕМЕНЕН — идва отделно.
+function showBundleReturnToOdit(sid) {
+  const host = document.getElementById('natal-results');
+  if (!host || document.getElementById('bundle-return-card')) return;
+  const card = document.createElement('div');
+  card.className = 'card no-print';
+  card.id = 'bundle-return-card';
+  card.style.marginTop = '14px';
+  card.innerHTML =
+    '<div class="num-school-title" style="color:var(--green-dark);">Двете Огледала са готови.</div>' +
+    '<div style="font-size:15px;color:var(--green-dark);font-weight:500;margin-top:4px;">Остава Личният жизнен одит.</div>' +
+    '<div class="card-text" style="line-height:1.9;margin:14px 0 0;">' +
+      'Нумерологията и Наталната карта вече добавиха своите гледни точки.<br><br>' +
+      'Сега идва финалната част:<br><br>' +
+      'Личният жизнен одит ще ги срещне с начина, по който действително живееш, избираш и реагираш днес. ' +
+      'Тук трите гледни точки се събират в един общ контекст.' +
+    '</div>' +
+    '<button class="btn btn-primary" id="bundle-return-btn" style="margin-top:16px;">Продължи към Личния одит →</button>';
+  host.appendChild(card);
+  const b = document.getElementById('bundle-return-btn');
+  if (b) b.onclick = function() {
+    trackEvent('bundle_return_to_odit', {});
+    window.location.href = 'https://odit.davai.v.bg/?payment=success&bundle_done=1&session_id=' + encodeURIComponent(sid);
+  };
 }
 
 // Същата защита като при Одита: не изключваме бутона, само казваме къде е отишло.
