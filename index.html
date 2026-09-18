@@ -82,6 +82,10 @@ src="https://www.facebook.com/tr?id=1275180257473388&ev=PageView&noscript=1"
   .form-row-3 { grid-template-columns: 1fr 1fr 1fr; }
   .form-row-2 { grid-template-columns: 1fr 1fr; }
 
+  .tp-toggle { display: flex; gap: 8px; margin-bottom: 10px; }
+  .tp-btn { flex: 1; padding: 10px 6px; border-radius: 10px; border: 1.5px solid var(--border); background: var(--card); font-size: 13px; line-height: 1.3; color: var(--text-secondary); cursor: pointer; font-family: 'DM Sans', sans-serif; transition: all 0.15s; }
+  .tp-btn.selected { background: var(--green); border-color: var(--green); color: #fff; }
+  .tp-note { font-size: 13px; color: var(--text-secondary); line-height: 1.65; background: var(--green-light); border-radius: 10px; padding: 10px 14px; margin-bottom: 16px; }
   .gender-toggle { display: flex; gap: 10px; margin-bottom: 16px; }
   .gender-btn { flex: 1; padding: 12px; border-radius: 10px; border: 1.5px solid var(--border); background: var(--card); font-size: 14px; color: var(--text-secondary); cursor: pointer; font-family: 'DM Sans', sans-serif; transition: all 0.15s; }
   .gender-btn.selected { background: var(--green); border-color: var(--green); color: #fff; }
@@ -217,14 +221,18 @@ src="https://www.facebook.com/tr?id=1275180257473388&ev=PageView&noscript=1"
     </div>
 
     <div class="field-label">Час на раждане</div>
+    <!-- Изборът стои НАД полетата нарочно: човек разбира, че не се иска акт за раждане
+         с точност до минута, преди да е започнал да въвежда каквото и да е. -->
+    <div class="tp-toggle">
+      <button type="button" class="tp-btn" id="tp-exact" onclick="setTimePrecision('exact')">Точен</button>
+      <button type="button" class="tp-btn" id="tp-approx" onclick="setTimePrecision('approx')">Приблизителен</button>
+      <button type="button" class="tp-btn" id="tp-unknown" onclick="setTimePrecision('unknown')">Не го знам</button>
+    </div>
     <div class="form-row form-row-2" id="time-fields" style="margin-bottom:10px;">
       <input type="number" class="input-field" id="birth-hour" placeholder="Час (0–23)" min="0" max="23" style="margin-bottom:0;">
       <input type="number" class="input-field" id="birth-minute" placeholder="Минути (0–59)" min="0" max="59" style="margin-bottom:0;">
     </div>
-    <label class="checkbox-row">
-      <input type="checkbox" id="no-time" onchange="toggleTimeFields()">
-      Не знам точния час
-    </label>
+    <div id="time-precision-note" class="tp-note" style="display:none;"></div>
 
     <div class="field-label">Имейл</div>
     <input type="email" class="input-field" id="email" placeholder="твоят@имейл.com">
@@ -304,10 +312,37 @@ src="https://www.facebook.com/tr?id=1275180257473388&ev=PageView&noscript=1"
 
       <div class="teaser-indicator">Твоят пълен Нумерологичен Одит съдържа над 900 думи персонален анализ.</div>
 
+      <!-- Двувариантен избор. #unlock-btn НЕ се преименува и не се мести в друг скрипт:
+           четири места го адресират по име (DAVAI-AUDIT25 промо пренаписването,
+           applyBundleGateTexts, skipQuestion, startNumerologyCheckout). -->
       <div class="unlock-wrap">
-        <button class="btn btn-primary" id="unlock-btn" onclick="startNumerologyCheckout()" style="width:100%;padding:16px;">
-          Отключи своя одит — €12.90
-        </button>
+        <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:stretch;margin:18px 0 14px;">
+
+          <!-- Само Нумерология -->
+          <div style="flex:1 1 240px;display:flex;flex-direction:column;text-align:center;background:var(--bg);border:1px solid var(--border);border-radius:12px;padding:20px 18px;">
+            <div style="font-size:11px;color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:12px;">Само Нумерология</div>
+            <div style="font-size:13px;color:var(--text-tertiary);margin-bottom:2px;">Твоята инвестиция днес:</div>
+            <div style="font-family:'Playfair Display',serif;font-size:2.8rem;font-weight:600;color:var(--green);line-height:1;">12,90 €</div>
+            <div style="font-size:12px;color:var(--text-tertiary);margin-top:8px;">Еднократно плащане</div>
+            <div style="flex:1;"></div>
+            <button class="btn btn-primary" id="unlock-btn" onclick="startNumerologyCheckout()" style="width:100%;justify-content:center;padding:14px;margin-top:16px;">
+              Отключи своя одит — €12.90
+            </button>
+          </div>
+
+          <!-- Пълен пакет. 36,40 € е реалният сбор на трите поотделно (12,90 + 8,90 + 14,60). -->
+          <div id="bundle-card" style="flex:1 1 240px;display:flex;flex-direction:column;text-align:center;background:var(--green-light);border:2px solid var(--green);border-radius:12px;padding:20px 18px;position:relative;">
+            <div style="position:absolute;top:-11px;left:50%;transform:translateX(-50%);background:var(--green);color:white;font-size:11px;padding:3px 12px;border-radius:20px;white-space:nowrap;">Пълната картина</div>
+            <div style="font-size:11px;color:var(--green-dark);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:12px;">Пълен пакет</div>
+            <div style="margin-bottom:4px;"><span class="price-strike">36,40 €</span></div>
+            <div style="font-family:'Playfair Display',serif;font-size:2.8rem;font-weight:600;color:var(--green-deep);line-height:1;">29,90 €</div>
+            <div style="font-size:13px;color:var(--green-dark);font-weight:500;margin-top:10px;">Трите анализа + общият им синтез</div>
+            <div style="font-size:13px;color:var(--text-secondary);line-height:1.7;margin-top:12px;">Около 2× цената на един анализ.<br>Но получаваш и трите огледала — и виждаш какво показват заедно.</div>
+            <div style="flex:1;"></div>
+            <button class="btn btn-primary" id="bundle-btn" onclick="startNumerologyCheckout('bundle')" style="width:100%;justify-content:center;padding:14px;margin-top:16px;">Вземи пакета →</button>
+          </div>
+
+        </div>
         <div class="err-msg" id="checkout-error" style="margin-top:12px;"></div>
         <div style="font-size:12px;color:var(--text-tertiary);margin-top:12px;">🔒 Плащането е обработено от Stripe.</div>
       </div>
@@ -321,6 +356,7 @@ src="https://www.facebook.com/tr?id=1275180257473388&ev=PageView&noscript=1"
       <div class="card no-print" style="margin-top:1.5rem;">
         <div id="email-note" style="font-size:13px;color:var(--green-dark);margin-bottom:12px;"></div>
         <button class="btn btn-ghost" onclick="trackEvent('pdf_download', {}); window.print()">⬇ Свали като PDF</button>
+        <div style="font-size:12px;color:var(--text-tertiary);margin-top:10px;line-height:1.6;">Изтегли анализа си като PDF, за да имаш копие, дори ако имейлът не пристигне.</div>
       </div>
 
       <!-- UPSELL A: Натална карта -->
@@ -344,7 +380,7 @@ src="https://www.facebook.com/tr?id=1275180257473388&ev=PageView&noscript=1"
         <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
           <button class="btn btn-primary" id="natal-buy-btn" onclick="payForNatal()">Добави Натална карта →</button>
           <div id="natal-price-tag" style="color:var(--green-dark);"><span class="price-inline">€8,90</span> · еднократно</div>
-          <a class="skip-link" onclick="hideNatalUpsell()">Пропусни →</a>
+          <a class="skip-link" id="natal-skip-link" onclick="hideNatalUpsell()">Пропусни →</a>
         </div>
       </div>
 
@@ -532,6 +568,10 @@ try {
 // при единична покупка. session_id-то е единственото, което пресича домейните, затова
 // веднага влиза в sessionStorage (LS_NATAL_SID вече съществува за същата цел).
 const LS_BUNDLE_MODE = 'davai_num_bundle';
+// Numerology-старт: пакетът се купува на ТОЗИ домейн, затова намерението трябва да
+// преживее redirect-а до Stripe и обратно. LS_BUNDLE_MODE се вдига чак при връщането,
+// когато има реален session_id. Огледално на LS_BUNDLE в одитския файл.
+const LS_BUNDLE_INTENT = 'davai_num_bundle_intent';
 (function() {
   var p = new URLSearchParams(window.location.search);
   if (p.get('bundle') !== '1') return;
@@ -629,9 +669,31 @@ function setGender(g) {
   document.getElementById('gender-female').classList.toggle('selected', g === 'female');
 }
 
-function toggleTimeFields() {
-  const off = document.getElementById('no-time').checked;
-  document.getElementById('time-fields').style.display = off ? 'none' : 'grid';
+// ─── ТОЧНОСТ НА ЧАСА НА РАЖДАНЕ ──────────────────────────────────────────────
+// Замества бинарния чекбокс „Не знам точния час". Трите състояния се различават
+// РЕАЛНО надолу по веригата, не само на екрана:
+//   exact   → както досега
+//   approx  → асцендент/MC се смятат, но промптът ги поднася условно
+//   unknown → асцендент/MC изобщо не се смятат и не се показват (нито в PDF-а)
+const TP_NOTES = {
+  unknown: 'Без точен час пак получаваш пълния анализ — отпада само частта за първото впечатление (асцендентът), която изисква точен час на раждане.',
+  approx: 'Достатъчно е приблизително. Асцендентът се изчислява от посочения час и анализът го отчита като ориентировъчен.'
+};
+let timePrecision = null;
+
+function setTimePrecision(v) {
+  timePrecision = v;
+  ['exact', 'approx', 'unknown'].forEach(function(k) {
+    const b = document.getElementById('tp-' + k);
+    if (b) b.classList.toggle('selected', k === v);
+  });
+  const fields = document.getElementById('time-fields');
+  if (fields) fields.style.display = (v === 'unknown') ? 'none' : 'grid';
+  const note = document.getElementById('time-precision-note');
+  if (note) {
+    if (TP_NOTES[v]) { note.textContent = TP_NOTES[v]; note.style.display = 'block'; }
+    else { note.style.display = 'none'; }
+  }
 }
 
 // ─── СЪСТОЯНИЕ ───────────────────────────────────────────────────────────────
@@ -657,7 +719,7 @@ async function submitForm() {
   const err = document.getElementById('form-error');
   err.style.display = 'none';
 
-  const noTime = document.getElementById('no-time').checked;
+  const noTime = timePrecision === 'unknown';
   const data = {
     first_name: document.getElementById('first-name').value.trim(),
     middle_name: document.getElementById('middle-name').value.trim(),
@@ -668,6 +730,7 @@ async function submitForm() {
     gender: gender,
     birth_hour: noTime ? null : (document.getElementById('birth-hour').value === '' ? null : parseInt(document.getElementById('birth-hour').value)),
     birth_minute: noTime ? null : (document.getElementById('birth-minute').value === '' ? 0 : parseInt(document.getElementById('birth-minute').value)),
+    time_precision: timePrecision,
     email: normalizeEmail(document.getElementById('email').value),
     phone: document.getElementById('phone').value.trim(),
     user_question: null,
@@ -685,7 +748,8 @@ async function submitForm() {
   if (!gender) problems.push('пол');
   if (!EMAIL_RE.test(data.email)) problems.push('валиден имейл');
   if (!data.phone) problems.push('телефон');
-  if (!noTime && data.birth_hour === null) problems.push('час на раждане (или отметни „Не знам")');
+  if (!timePrecision) problems.push('точност на часа на раждане (Точен / Приблизителен / Не го знам)');
+  else if (!noTime && data.birth_hour === null) problems.push('час на раждане');
 
   if (problems.length) {
     err.textContent = 'Моля попълни: ' + problems.join(', ') + '.';
@@ -788,6 +852,20 @@ function renderFree(paid) {
 function applyBundleGateTexts() {
   if (!bundleSessionId()) return;
 
+  // ── Пакетната карта пада ──
+  // Човекът вече притежава пакета — втора оферта за €29,90 до статуса „Включена в
+  // Пълния пакет" е противоречие. Важи и за двата входа: при Numerology-старт картата
+  // е била натисната преди малко, при Audit-старт пакетът е купен на другия домейн.
+  const bcard = document.getElementById('bundle-card');
+  if (bcard) bcard.style.display = 'none';
+
+  // ── „Пропусни →" на наталния upsell пада ──
+  // Наталът е задължителна стъпка в пакета: одитският upsell се скрива при притежание,
+  // а картата напред към Одита се появява чак СЛЕД наталния анализ. Ако човек пропусне
+  // натала, на екрана не остава нито един път напред.
+  const skip = document.getElementById('natal-skip-link');
+  if (skip) skip.style.display = 'none';
+
   // ── Нумерологичен free-gate ──
   const btn = document.getElementById('unlock-btn');
   if (btn) {
@@ -826,16 +904,19 @@ function skipQuestion() {
 }
 
 // ─── ПЛАЩАНЕ ЗА НУМЕРОЛОГИЧНИЯ ОДИТ ──────────────────────────────────────────
-async function startNumerologyCheckout() {
+async function startNumerologyCheckout(kind) {
+  const isBundle = kind === 'bundle';
   const q = document.getElementById('user-question').value.trim();
   markQuestionAnswered(!q);
-  trackEvent('buy_clicked', { value: 12.90, currency: 'EUR' });
+  trackEvent('buy_clicked', { value: isBundle ? 29.90 : 12.90, currency: 'EUR', bundle: isBundle });
   numData.user_question = q || null;
   saveState();
   try {
     localStorage.setItem(LS_NUMEROLOGY_RESUME, JSON.stringify({ numData, ts: Date.now() }));
   } catch(e) {}
   sessionStorage.setItem(LS_CHECKOUT, '1');
+  // Преживява redirect-а до Stripe — при връщането решава дали да вдигнем bundle режима.
+  try { sessionStorage.setItem(LS_BUNDLE_INTENT, isBundle ? '1' : '0'); } catch(e) {}
 
   // ── Пакет: правото е платено, няма втори checkout ──
   // generateReport() подава session_id-то на /numerology, а там hasEntitlement()
@@ -849,24 +930,39 @@ async function startNumerologyCheckout() {
 
   const err = document.getElementById('checkout-error');
   err.style.display = 'none';
-  const btn = document.getElementById('unlock-btn');
+  const btn = document.getElementById(isBundle ? 'bundle-btn' : 'unlock-btn');
   const btnHtml = btn.innerHTML;   // innerHTML, не textContent — при промо съдържа зачертаната цена
   btn.disabled = true; btn.textContent = 'Пренасочване към плащане...';
 
   try {
     const fb = getFbParams();
+    // amount И product ЗАДЪЛЖИТЕЛНО заедно при пакета — виж бележката в одитския
+    // startOditCheckout().
+    const body = isBundle
+      ? {
+          amount: 2990,
+          productName: 'ДАВАЙ! Пълен пакет',
+          product: 'bundle',
+          entryFunnel: 'numerology'
+        }
+      : {
+          amount: CONFIG.numerologyPrice,
+          productName: CONFIG.numerologyProduct,
+          product: 'numerology'
+        };
     const res = await fetch(CONFIG.workerUrl + '/create-checkout', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        amount: CONFIG.numerologyPrice,
-        productName: CONFIG.numerologyProduct,
-        product: 'numerology',
+      body: JSON.stringify(Object.assign({}, body, {
         successUrl: CONFIG.siteUrl + '?numerology=success&session_id={CHECKOUT_SESSION_ID}',
         cancelUrl: CONFIG.siteUrl,
         voucherCode: promoCode || undefined,
+        // Общ за двата пътя. Без него savePending пишеше email: null, а Stripe
+        // събираше свой адрес — saveEntitlementByEmail ключираше правото по него,
+        // не по имейла от формата, и /entitlement не го намираше.
+        email: numData.email || undefined,
         fbclid: fb.fbclid, fbc: fb.fbc, fbp: fb.fbp
-      })
+      }))
     });
     const data = await res.json();
     if (data.url) { window.location.href = data.url; return; }
@@ -875,7 +971,7 @@ async function startNumerologyCheckout() {
     // Преди тук имаше пренасочване към CONFIG.numerologyPaymentLink — виж showCheckoutError().
     // Бутонът се възстановява, защото вече оставаме на страницата.
     btn.disabled = false; btn.innerHTML = btnHtml;
-    showCheckoutError('numerology', startNumerologyCheckout);
+    showCheckoutError('numerology', function() { startNumerologyCheckout(kind); });
   }
 }
 
@@ -900,7 +996,12 @@ async function generateReport(sessionId) {
     localStorage.removeItem(LS_NUMEROLOGY_RESUME);
     clearReturnUrl();
 
-    trackEvent('purchase', { value: 12.90, currency: 'EUR' });
+    // purchase гърми точно ВЕДНЪЖ — на домейна, където реално са взети парите.
+    // Numerology-старт пакет: тук, 29.90. Audit-старт пакет: одитският домейн вече го е
+    // отчел, затова мълчим. Самостоятелна нумерология: тук, 12.90.
+    const boughtHere = (function() { try { return sessionStorage.getItem(LS_BUNDLE_INTENT) === '1'; } catch(e) { return false; } })();
+    if (boughtHere) trackEvent('purchase', { value: 29.90, currency: 'EUR', bundle: true });
+    else if (!bundleSessionId()) trackEvent('purchase', { value: 12.90, currency: 'EUR' });
     showScreen('result');
     renderFree(true);
     showReport(data.report, data.emailed);
@@ -1054,6 +1155,16 @@ async function checkReturn() {
         showScreen('form'); return;
       }
     }
+    // ── Numerology-старт пакет: вдигаме режима тук ──
+    // Правото обхваща и натала, и одита. От този момент нататък целият апарат, който
+    // Audit-стартът получава от ?bundle=1, работи и в тази посока без изключения:
+    // applyBundleGateTexts, payForNatal bundle клонът, showBundleReturnToOdit.
+    try {
+      if (sid && sessionStorage.getItem(LS_BUNDLE_INTENT) === '1') {
+        sessionStorage.setItem(LS_BUNDLE_MODE, '1');
+        rememberNatalSessionId(sid);
+      }
+    } catch(e) {}
     // Резервните данни НЕ се трият тук — само след потвърден успех в generateReport().
     const allowed = sid || sessionStorage.getItem(LS_CHECKOUT) === '1';
     if (allowed) { generateReport(sid); }
@@ -1233,6 +1344,13 @@ async function fetchNatalChart() {
   }
 
   const day = numData.birth_day, month = numData.birth_month, year = numData.birth_year;
+  // Обед остава САМО за да се смятат планетите — те се местят бавно и това е приетата
+  // конвенция при неизвестен час. Асцендентът и MC, които зависят изцяло от часа, се
+  // изхвърлят по-долу: не се показват и не стигат до промпта.
+  // Наследени резерви (localStorage отпреди тази промяна) нямат time_precision, но
+  // празният birth_hour означава точно същото — човекът е отметнал стария „Не знам".
+  const unknownTime = numData.time_precision === 'unknown' ||
+    (!numData.time_precision && (numData.birth_hour === null || numData.birth_hour === undefined));
   const hour = (numData.birth_hour === null || numData.birth_hour === undefined) ? 12 : numData.birth_hour;
   const min = (numData.birth_minute === null || numData.birth_minute === undefined) ? 0 : numData.birth_minute;
 
@@ -1249,8 +1367,8 @@ async function fetchNatalChart() {
     if (data.error) throw new Error(data.error);
     document.getElementById('natal-form').style.display = 'none';
     try { sessionStorage.setItem(LS_NATAL_DONE, '1'); } catch(e) {}
-    renderNatal(data.planets);
-    fetchNatalAnalysis(data.planets);
+    renderNatal(data.planets, unknownTime);
+    fetchNatalAnalysis(data.planets, unknownTime ? 'unknown' : (numData.time_precision || 'exact'));
   } catch(e) {
     err.textContent = 'Грешка: ' + e.message;
     err.style.display = 'block';
@@ -1264,12 +1382,14 @@ const SIGNS_ORDER = ['Aries','Taurus','Gemini','Cancer','Leo','Virgo','Libra','S
 const MAIN_PLANETS = ['Sun','Moon','Mercury','Venus','Mars','Jupiter','Saturn','Uranus','Neptune','Pluto'];
 function degToSign(deg) { return SIGNS_ORDER[Math.floor((deg % 360) / 30)]; }
 
-function renderNatal(data) {
+function renderNatal(data, hideAscendant) {
   const planets = (data.planets || []).filter(p => MAIN_PLANETS.includes(p.name));
   let html = '<div class="card" style="border:2px solid var(--purple-light);">';
   html += '<div class="num-school-title" style="color:var(--purple-text);">Натална карта</div>';
   html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">';
-  if (data.ascendant !== undefined) {
+  // При неизвестен час редът изобщо не се генерира — затова липсва и в PDF-а,
+  // който е window.print() на същия DOM.
+  if (!hideAscendant && data.ascendant !== undefined) {
     html += '<div style="background:var(--purple-light);border-radius:10px;padding:10px 12px;"><div style="font-size:12px;color:var(--purple-text);font-weight:500;">⬆️ Асцендент</div><div style="font-size:15px;font-weight:600;">' + (SIGN_BG[degToSign(data.ascendant)] || '') + '</div></div>';
   }
   planets.forEach(p => {
@@ -1279,11 +1399,14 @@ function renderNatal(data) {
   document.getElementById('natal-results').innerHTML = html;
 }
 
-async function fetchNatalAnalysis(planetData) {
+async function fetchNatalAnalysis(planetData, precision) {
   const planets = (planetData.planets || []).filter(p => MAIN_PLANETS.includes(p.name));
   const planetsText = planets.map(p => (PLANET_BG[p.name] || p.name) + ' в ' + (SIGN_BG[p.sign] || p.sign)).join(', ');
-  const ascSign = planetData.ascendant !== undefined ? (SIGN_BG[degToSign(planetData.ascendant)] || '') : '';
-  const mcSign = planetData.midheaven !== undefined ? (SIGN_BG[degToSign(planetData.midheaven)] || '') : '';
+  // При неизвестен час двете стойности не тръгват изобщо — промптът получава празно
+  // и има изрична инструкция да не пише за асцендент, домове и „първо впечатление".
+  const noAsc = precision === 'unknown';
+  const ascSign = (!noAsc && planetData.ascendant !== undefined) ? (SIGN_BG[degToSign(planetData.ascendant)] || '') : '';
+  const mcSign = (!noAsc && planetData.midheaven !== undefined) ? (SIGN_BG[degToSign(planetData.midheaven)] || '') : '';
   const theme = numData.natal_theme;
 
   const wrap = document.createElement('div');
@@ -1299,7 +1422,7 @@ async function fetchNatalAnalysis(planetData) {
       headers: { 'Content-Type': 'application/json' },
       // gender вече е събран в нумерологичната форма (задължително поле) — предаваме го,
       // за да не гадае наталният анализ рода на читателя от чужди имена в контекста.
-      body: JSON.stringify({ ascSign, mcSign, planetsText, theme: theme || undefined, email: numData.email || undefined, session_id: getNatalSessionId() || undefined, gender: numData.gender || undefined })
+      body: JSON.stringify({ ascSign, mcSign, planetsText, theme: theme || undefined, email: numData.email || undefined, session_id: getNatalSessionId() || undefined, gender: numData.gender || undefined, timePrecision: precision || 'exact' })
     });
     const data = await res.json();
     if (data.error) throw new Error(data.error);
@@ -1313,7 +1436,8 @@ async function fetchNatalAnalysis(planetData) {
       '<div style="display:flex;gap:10px;flex-wrap:wrap;">' +
       '<button class="btn btn-ghost" onclick="trackEvent(\'pdf_download\', {}); window.print()">⬇ Свали като PDF</button>' +
       '<button class="btn btn-ghost" id="natal-email-btn" onclick="sendNatalEmailQuick()">📧 Изпрати на имейл</button>' +
-      '</div><div id="natal-email-status" style="font-size:12px;margin-top:8px;"></div>';
+      '</div><div id="natal-email-status" style="font-size:12px;margin-top:8px;"></div>' +
+      '<div style="font-size:12px;color:var(--text-tertiary);margin-top:10px;line-height:1.6;">Изтегли анализа си като PDF, за да имаш копие, дори ако имейлът не пристигне.</div>';
     document.getElementById('natal-results').appendChild(actionsDiv);
     // /natal-analysis вече праща имейла автоматично. Отразяваме го веднага, за да не
     // праща човек втори път по погрешка — но бутонът остава активен (може да иска друг адрес).
@@ -1349,10 +1473,17 @@ function showBundleReturnToOdit(sid) {
     '<button class="btn btn-primary" id="bundle-return-btn" style="margin-top:16px;">Продължи към Личния одит →</button>';
   host.appendChild(card);
   const b = document.getElementById('bundle-return-btn');
-  if (b) b.onclick = function() {
-    trackEvent('bundle_return_to_odit', {});
-    window.location.href = 'https://odit.davai.v.bg/?payment=success&bundle_done=1&session_id=' + encodeURIComponent(sid);
-  };
+  if (b) b.onclick = function() { goOditBundle(sid); };
+}
+
+// Единственият изход към Одита при пакет — ползван и от картата по-горе, и от
+// goPersonalOdit(). Едно място, за да не се разминат двата пътя.
+// bundle_done=1 е вярно и в двете посоки: „нумерологията и наталът са готови".
+// При Audit-старт одитският домейн вдига отговорите от резерва; при Numerology-старт
+// резерв за този sid няма, потокът пада в интро клона и човекът попълва формата.
+function goOditBundle(sid) {
+  trackEvent('bundle_return_to_odit', {});
+  window.location.href = 'https://odit.davai.v.bg/?payment=success&bundle_done=1&session_id=' + encodeURIComponent(sid);
 }
 
 // Същата защита като при Одита: не изключваме бутона, само казваме къде е отишло.
@@ -1397,6 +1528,12 @@ async function sendNatalEmailQuick() {
 }
 
 async function goPersonalOdit() {
+  // ── Пакет: Одитът вече е платен — носим session_id-то, не правим нов checkout ──
+  // Огледално на goNumerologyBundle() от другата посока. Без този клон купувач на пакет,
+  // който натисне тази карта, плаща втори път пълните €14.60.
+  const bSid = bundleSessionId();
+  if (bSid) return goOditBundle(bSid);
+
   trackEvent('odit_upsell_clicked', { value: 14.60, currency: 'EUR' });
   try { sessionStorage.setItem(LS_ODIT_CLICKED, '1'); } catch(e) {}
   // Програматичен checkout — за пълна Meta attribution, fallback към Payment Link
